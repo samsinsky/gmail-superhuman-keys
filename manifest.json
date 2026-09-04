@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Superhuman Keys",
+  "version": "0.1.0",
+  "description": "Superhuman's account and inbox-tab shortcuts, in Gmail: Ctrl+1..9 to switch accounts, Tab / Shift+Tab to cycle inbox tabs.",
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["config.js", "core.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
