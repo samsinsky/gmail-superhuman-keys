@@ -61,6 +61,8 @@ Everything lives in `config.js`:
 
 ## Tests
 
+Not needed to install — Chrome ignores `test/` and `diag/`.
+
 ```sh
 node --test test/core.test.js
 ```
@@ -68,3 +70,7 @@ node --test test/core.test.js
 `core.js` holds the pure logic (URL building, which tab is active, where to
 cycle to, whether a keypress is ours) and is fully covered. `content.js` is
 thin wiring over it and is verified by hand in Gmail.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
