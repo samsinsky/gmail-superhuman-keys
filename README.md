@@ -7,6 +7,12 @@ Two Superhuman shortcuts, added to Gmail:
 | `Ctrl+1` … `Ctrl+9` | Switch Google account |
 | `Tab` / `Shift+Tab` | Next / previous inbox tab (Primary, Social, Promotions, …) |
 
+![Cycling inbox tabs with Tab, then selecting and deleting with Gmail's own x and # shortcuts](demo.gif)
+
+Because the shortcuts only move Gmail's own tabs, everything native keeps
+working on top of them — above, `Tab` cycles Primary → Promotions → Social,
+then `x` selects and `#` deletes without leaving the keyboard.
+
 Requires Gmail's inbox type to be **Default** (the one with tabs). No OAuth, no
 Gmail API, no network calls — it reads the tab bar and changes the URL. Nothing
 touches your mail.
