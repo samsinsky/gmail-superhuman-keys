@@ -154,6 +154,14 @@ function matchBinding(e, bindings, pending = null) {
   return null;
 }
 
+// True when this keypress opens a chord some binding is waiting under. A
+// modifier rules it out: Ctrl+G belongs to whatever else has claimed it.
+function isChordPrefix(e, bindings) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return false;
+  const pressed = normalizeKey(e.key);
+  return (bindings || []).some((b) => b.chord && normalizeKey(b.chord) === pressed);
+}
+
 // Bindings that cost a Gmail native ship optIn and stay off until config names
 // them, so installing an update never silently takes a shortcut away.
 function activeBindings(bindings, config = {}) {
@@ -191,6 +199,7 @@ const core = {
   modMatches,
   bindingMatches,
   matchBinding,
+  isChordPrefix,
   activeBindings,
   accountBindings,
 };

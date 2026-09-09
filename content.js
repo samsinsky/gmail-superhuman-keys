@@ -88,6 +88,12 @@
   const ACTIONS = {
     account: (arg) => switchAccount(arg),
     cycleTab: (arg) => cycleTab(arg),
+    nav: (arg) => {
+      if (!arg) return false;
+      log('nav ->', arg);
+      window.location.hash = arg;
+      return true;
+    },
   };
 
   // Ctrl+1..9 is generated from however many accounts are configured, so an
@@ -106,22 +112,51 @@
     return action(binding.arg) === true;
   }
 
+  // How long a `g` stays armed. Long enough to be typed deliberately, short
+  // enough that a stray g does not swallow the next keystroke.
+  const CHORD_TIMEOUT_MS = 1500;
+
+  let pending = null;
+  let pendingTimer = null;
+
+  function clearPending() {
+    pending = null;
+    if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+  }
+
+  function armPending(prefix) {
+    clearPending();
+    pending = prefix;
+    pendingTimer = setTimeout(clearPending, CHORD_TIMEOUT_MS);
+  }
+
   // Capture phase: Gmail binds its own handlers on the document, so we have to
   // see the event first to claim it.
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing) return;
     if (core.shouldIgnore(e.target)) return;
 
-    const binding = core.matchBinding(e, bindings);
-    if (!binding) return;
-
-    // Only swallow the keypress if the action actually did something. A binding
-    // that declines (no account in that slot, one tab to cycle) hands the key
-    // back to Gmail rather than eating it.
-    if (run(binding)) {
-      e.preventDefault();
-      e.stopPropagation();
+    const binding = core.matchBinding(e, bindings, pending);
+    if (binding) {
+      clearPending();
+      // Only swallow the keypress if the action actually did something. A
+      // binding that declines (no account in that slot, one tab to cycle,
+      // a control that is not on screen) hands the key back to Gmail rather
+      // than eating it.
+      if (run(binding)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
     }
+
+    // A second key we do not claim ends our chord and falls through, so Gmail's
+    // own g+i, g+s and friends still land.
+    if (pending) { clearPending(); return; }
+
+    // Never preventDefault the prefix itself: Gmail is arming its own chord on
+    // the same keypress, and we only claim leaves Gmail leaves free.
+    if (core.isChordPrefix(e, bindings)) armPending(core.normalizeKey(e.key));
   }, true);
 
   // Warm the cache once the tab bar has rendered.

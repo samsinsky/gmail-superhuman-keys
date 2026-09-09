@@ -295,3 +295,37 @@ test('accountBindings excludes Cmd and Alt, so browser tab switching is untouche
   assert.strictEqual(core.matchBinding(key('2', { ctrl: true, meta: true }), list), null);
   assert.strictEqual(core.matchBinding(key('2', { meta: true }), list), null);
 });
+
+// --- chords ----------------------------------------------------------------
+
+const CHORDED = [
+  { id: 'done', key: 'e', chord: 'g', action: 'nav', arg: '#search/in%3Aarchive' },
+  { id: 'trash', key: '#', shift: 'any', chord: 'g', action: 'nav', arg: '#trash' },
+  { id: 'tabNext', key: 'Tab', action: 'cycleTab', arg: 1 },
+];
+
+test('isChordPrefix recognises a key some binding uses as a prefix', () => {
+  assert.strictEqual(core.isChordPrefix(key('g'), CHORDED), true);
+});
+
+test('isChordPrefix is false for a key no binding chords on', () => {
+  assert.strictEqual(core.isChordPrefix(key('q'), CHORDED), false);
+});
+
+test('isChordPrefix is false under a modifier, so Ctrl+G is left alone', () => {
+  assert.strictEqual(core.isChordPrefix(key('g', { ctrl: true }), CHORDED), false);
+  assert.strictEqual(core.isChordPrefix(key('g', { meta: true }), CHORDED), false);
+});
+
+test('a chord leaf resolves only under its prefix', () => {
+  assert.strictEqual(core.matchBinding(key('e'), CHORDED, 'g').id, 'done');
+  assert.strictEqual(core.matchBinding(key('e'), CHORDED, null), null);
+});
+
+test('a shifted-punctuation leaf resolves under its prefix', () => {
+  assert.strictEqual(core.matchBinding(key('#', { shift: true }), CHORDED, 'g').id, 'trash');
+});
+
+test('an unclaimed second key resolves to nothing, so g+i still reaches Gmail', () => {
+  assert.strictEqual(core.matchBinding(key('i'), CHORDED, 'g'), null);
+});
