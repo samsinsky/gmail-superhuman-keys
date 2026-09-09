@@ -24,4 +24,17 @@ globalThis.GSK_BINDINGS = [
   // than being asserted twice.
   { id: 'goSpam', key: '!', shift: 'any', chord: 'g', action: 'nav', arg: '#spam' },
   { id: 'goTrash', key: '#', shift: 'any', chord: 'g', action: 'nav', arg: '#trash' },
+
+  // Superhuman's filters narrow the current view; Gmail's nearest equivalent is
+  // a search. All three are opt-in because Shift+U and Shift+I are Gmail's
+  // mark-as-unread and mark-as-read, and taking those silently would be rude.
+  // Superhuman's Shift+R (no reply) has no Gmail operator behind it and is
+  // deliberately absent.
+  { id: 'filterUnread', key: 'u', shift: true, optIn: true, action: 'nav', arg: '#search/is%3Aunread' },
+  { id: 'filterStarred', key: 's', shift: true, optIn: true, action: 'nav', arg: '#search/is%3Astarred' },
+  { id: 'filterImportant', key: 'i', shift: true, optIn: true, action: 'nav', arg: '#search/is%3Aimportant' },
+
+  // Gmail already puts the conversation permalink in the URL, so there is
+  // nothing to look up. Ctrl+/ is unbound in both Gmail and Chrome.
+  { id: 'copyLink', key: '/', ctrl: true, action: 'copyLink' },
 ];

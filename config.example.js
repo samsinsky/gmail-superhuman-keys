@@ -21,6 +21,19 @@ globalThis.GSK_CONFIG = {
   // Updates, Forums.
   tabs: null,
 
+  // Shortcuts that would cost you a Gmail native are off until you name them
+  // here, so an update never silently takes a Gmail shortcut away. Full list of
+  // ids in README.md.
+  //
+  //   enabled: ['filterUnread', 'filterStarred', 'filterImportant'],
+  //
+  // Note that filterUnread and filterImportant take over Shift+U and Shift+I,
+  // which are Gmail's mark-as-unread and mark-as-read.
+  enabled: [],
+
+  // Turn off anything shipped on by default, by id.
+  disabled: [],
+
   // Set true to log detection and navigation decisions to the console.
   debug: false,
 };
