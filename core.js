@@ -162,6 +162,37 @@ function isChordPrefix(e, bindings) {
   return (bindings || []).some((b) => b.chord && normalizeKey(b.chord) === pressed);
 }
 
+// Modifiers arrive as their own keydown before the character they modify:
+// typing ! is a Shift keydown, then a '!' keydown. The chord machine has to sit
+// still for them, or every chord ending in shifted punctuation is disarmed
+// before its leaf arrives.
+const MODIFIER_KEYS = new Set(['shift', 'control', 'alt', 'meta', 'altgraph', 'capslock']);
+
+function isModifierKey(e) {
+  return MODIFIER_KEYS.has(normalizeKey(e.key));
+}
+
+// One keypress against the table, given the prefix currently armed. Returns the
+// binding to run (or null) and the prefix to hold next.
+//
+// This is pure so the chord state machine can be tested. It lived in content.js
+// once, where a modifier keydown disarmed the chord and g+! quietly reached
+// Gmail as "report spam" instead -- the kind of bug that only shows up on a
+// real keyboard, which is exactly why it belongs here.
+function resolveKey(e, bindings, pending = null) {
+  if (isModifierKey(e)) return { binding: null, pending };
+
+  const binding = matchBinding(e, bindings, pending);
+  if (binding) return { binding, pending: null };
+
+  // A second key we do not claim ends our chord and falls through, so Gmail's
+  // own g+i, g+s and friends still land.
+  if (pending) return { binding: null, pending: null };
+
+  if (isChordPrefix(e, bindings)) return { binding: null, pending: normalizeKey(e.key) };
+  return { binding: null, pending: null };
+}
+
 // Bindings that cost a Gmail native ship optIn and stay off until config names
 // them, so installing an update never silently takes a shortcut away.
 function activeBindings(bindings, config = {}) {
@@ -200,6 +231,9 @@ const core = {
   bindingMatches,
   matchBinding,
   isChordPrefix,
+  MODIFIER_KEYS,
+  isModifierKey,
+  resolveKey,
   activeBindings,
   accountBindings,
 };

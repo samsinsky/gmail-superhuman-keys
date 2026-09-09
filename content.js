@@ -119,15 +119,12 @@
   let pending = null;
   let pendingTimer = null;
 
-  function clearPending() {
-    pending = null;
+  // Whether a prefix is armed is core.resolveKey's decision; this only holds it
+  // and expires it.
+  function setPending(next) {
     if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-  }
-
-  function armPending(prefix) {
-    clearPending();
-    pending = prefix;
-    pendingTimer = setTimeout(clearPending, CHORD_TIMEOUT_MS);
+    pending = next;
+    if (next) pendingTimer = setTimeout(() => { pending = null; pendingTimer = null; }, CHORD_TIMEOUT_MS);
   }
 
   // Capture phase: Gmail binds its own handlers on the document, so we have to
@@ -136,27 +133,17 @@
     if (e.defaultPrevented || e.isComposing) return;
     if (core.shouldIgnore(e.target)) return;
 
-    const binding = core.matchBinding(e, bindings, pending);
-    if (binding) {
-      clearPending();
-      // Only swallow the keypress if the action actually did something. A
-      // binding that declines (no account in that slot, one tab to cycle,
-      // a control that is not on screen) hands the key back to Gmail rather
-      // than eating it.
-      if (run(binding)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      return;
+    const { binding, pending: next } = core.resolveKey(e, bindings, pending);
+    if (next !== pending) setPending(next);
+    if (!binding) return;
+
+    // Only swallow the keypress if the action actually did something. A binding
+    // that declines (no account in that slot, one tab to cycle, a control that
+    // is not on screen) hands the key back to Gmail rather than eating it.
+    if (run(binding)) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-
-    // A second key we do not claim ends our chord and falls through, so Gmail's
-    // own g+i, g+s and friends still land.
-    if (pending) { clearPending(); return; }
-
-    // Never preventDefault the prefix itself: Gmail is arming its own chord on
-    // the same keypress, and we only claim leaves Gmail leaves free.
-    if (core.isChordPrefix(e, bindings)) armPending(core.normalizeKey(e.key));
   }, true);
 
   // Warm the cache once the tab bar has rendered.

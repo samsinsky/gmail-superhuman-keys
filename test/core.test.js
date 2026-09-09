@@ -329,3 +329,67 @@ test('a shifted-punctuation leaf resolves under its prefix', () => {
 test('an unclaimed second key resolves to nothing, so g+i still reaches Gmail', () => {
   assert.strictEqual(core.matchBinding(key('i'), CHORDED, 'g'), null);
 });
+
+// --- modifier keys and the chord state machine ------------------------------
+// Typing ! is two keydowns: Shift, then '!'. A modifier keydown must not count
+// as "a second key we do not claim", or every chord ending in shifted
+// punctuation dies before its leaf arrives. This escaped review once because
+// the state machine lived in content.js, untested; it lives in core.js now.
+
+test('isModifierKey is true for the modifiers that arrive as their own keydown', () => {
+  assert.strictEqual(core.isModifierKey(key('Shift', { shift: true })), true);
+  assert.strictEqual(core.isModifierKey(key('Control', { ctrl: true })), true);
+  assert.strictEqual(core.isModifierKey(key('Alt', { alt: true })), true);
+  assert.strictEqual(core.isModifierKey(key('Meta', { meta: true })), true);
+});
+
+test('isModifierKey is false for ordinary keys', () => {
+  assert.strictEqual(core.isModifierKey(key('g')), false);
+  assert.strictEqual(core.isModifierKey(key('!', { shift: true })), false);
+  assert.strictEqual(core.isModifierKey(key('Tab')), false);
+});
+
+test('resolveKey arms a chord on the prefix without running anything', () => {
+  const r = core.resolveKey(key('g'), CHORDED, null);
+  assert.strictEqual(r.binding, null);
+  assert.strictEqual(r.pending, 'g');
+});
+
+test('resolveKey runs a chord leaf and disarms', () => {
+  const r = core.resolveKey(key('e'), CHORDED, 'g');
+  assert.strictEqual(r.binding.id, 'done');
+  assert.strictEqual(r.pending, null);
+});
+
+test('a Shift keydown holds the chord open, so g then ! still reaches spam', () => {
+  const held = core.resolveKey(key('Shift', { shift: true }), CHORDED, 'g');
+  assert.strictEqual(held.binding, null);
+  assert.strictEqual(held.pending, 'g', 'Shift must not disarm the chord');
+
+  const leaf = core.resolveKey(key('#', { shift: true }), CHORDED, held.pending);
+  assert.strictEqual(leaf.binding.id, 'trash');
+});
+
+test('a modifier keydown outside a chord leaves the machine alone', () => {
+  const r = core.resolveKey(key('Shift', { shift: true }), CHORDED, null);
+  assert.strictEqual(r.binding, null);
+  assert.strictEqual(r.pending, null);
+});
+
+test('an unclaimed second key disarms and runs nothing, so Gmail gets g+i', () => {
+  const r = core.resolveKey(key('i'), CHORDED, 'g');
+  assert.strictEqual(r.binding, null);
+  assert.strictEqual(r.pending, null);
+});
+
+test('resolveKey runs a plain binding when no chord is pending', () => {
+  const r = core.resolveKey(key('Tab'), CHORDED, null);
+  assert.strictEqual(r.binding.id, 'tabNext');
+  assert.strictEqual(r.pending, null);
+});
+
+test('a plain binding does not fire while a chord is pending', () => {
+  const r = core.resolveKey(key('Tab'), CHORDED, 'g');
+  assert.strictEqual(r.binding, null);
+  assert.strictEqual(r.pending, null);
+});
