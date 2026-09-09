@@ -55,7 +55,7 @@ What this plan adds, and what it deliberately leaves out.
 | Superhuman | Gmail key it fires | Costs |
 |---|---|---|
 | `Enter` Reply all | `a` | Enter-to-open (Gmail's `o` still opens) |
-| `u` Toggle read/unread | `Shift+i` / `Shift+u` | Gmail's back-to-list on `u` |
+| `u` Toggle read/unread | `Shift+i` when unread, `Shift+u` when read | Gmail's back-to-list on `u` |
 | `Escape` Back to list | `u` | Nothing (Escape is unbound in the thread list) |
 | `o` Expand message | `;` | Gmail's `o` = open conversation |
 | `Shift+O` Expand all | `;` | Nothing |
@@ -780,7 +780,9 @@ git commit -m "Add keystroke synthesis with h to snooze and Shift+M to mute"
 
 ## Task 7: Conflicting rebinds
 
-Every binding here takes a key Gmail already uses, so all five are `optIn`. `readToggle` also needs state Gmail does not expose in the DOM reliably — whether the conversation is currently read — so it is implemented as "mark unread", matching what Superhuman's `u` does the overwhelming majority of the time, and documented as the deliberate simplification it is.
+Every binding here takes a key Gmail already uses, so all five are `optIn`. `readToggle` needs to know whether the focused conversation is currently read, and it can: measured 2026-09-09, Gmail marks unread rows `tr.zA.zE` and read rows `tr.zA.yO`, and the two partition the thread list exactly. It therefore fires `Shift+i` on an unread row and `Shift+u` on a read one, which is a real toggle rather than the mark-unread-only simplification an earlier draft settled for.
+
+This binding is what makes Task 4's filters safe to enable: `filterImportant` takes Gmail's `Shift+I` (mark as read), and without a working toggle there would be no way to mark a conversation read at all. If Task 4 ships enabled before this lands, that gap is live in between.
 
 **Files:**
 - Modify: `bindings.js`
@@ -801,11 +803,17 @@ Every binding here takes a key Gmail already uses, so all five are `optIn`. `rea
   // Costs Gmail's u (back to the thread list) -- pair this with backToList
   // below, which is what Superhuman puts on Escape.
   //
-  // Superhuman's u toggles; Gmail splits read and unread across Shift+I and
-  // Shift+U, and the read state is not reliably legible from the DOM. This
-  // fires mark-as-unread, which is what the toggle almost always means in
-  // practice. Reading a conversation marks it read anyway.
-  { id: 'markUnread', key: 'u', optIn: true, action: 'key', arg: { key: 'u', shift: true } },
+  // Superhuman's u toggles, and it genuinely toggles here. MEASURED
+  // 2026-09-09: Gmail marks unread rows tr.zA.zE and read rows tr.zA.yO, and
+  // the two classes partition the thread list exactly (33 + 17 = 50 rows), so
+  // read state IS legible from the DOM -- an earlier draft of this plan
+  // asserted it was not and settled for mark-unread only. document.activeElement
+  // is the focused row itself, so its class is the state to read.
+  //
+  // This is what frees Shift+U and Shift+I for the Task 4 filters: without a
+  // working toggle, enabling filterImportant would leave no way to mark read
+  // at all.
+  { id: 'readToggle', key: 'u', optIn: true, action: 'readToggle' },
   // Escape is unbound in Gmail's thread list, so this costs nothing on its own
   // -- it exists to give back what markUnread takes away.
   { id: 'backToList', key: 'Escape', optIn: true, action: 'key', arg: { key: 'u' } },
