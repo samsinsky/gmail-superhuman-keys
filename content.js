@@ -94,6 +94,16 @@
       window.location.hash = arg;
       return true;
     },
+    // The clipboard write is async but the binding is claimed synchronously:
+    // returning true here means "this keystroke was ours", not "the clipboard
+    // is written". The write needs the document focused and can be refused.
+    copyLink: () => {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url)
+        .then(() => log('copied', url))
+        .catch((err) => log('clipboard refused:', err && err.message));
+      return true;
+    },
   };
 
   // Ctrl+1..9 is generated from however many accounts are configured, so an
