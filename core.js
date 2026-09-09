@@ -117,6 +117,63 @@ function stepIndex(index, direction, length) {
   return (index + direction + length) % length;
 }
 
+// --- key bindings ----------------------------------------------------------
+// A binding is data: the keypress that triggers it, the chord prefix it lives
+// under (if any), and the name of an action content.js knows how to run.
+// Adding a shortcut should mean adding a row to bindings.js, not editing logic.
+
+function normalizeKey(key) {
+  return String(key || '').toLowerCase();
+}
+
+// Modifiers default to "must be absent" so a binding never fires under a
+// combination it did not ask for. 'any' opts out, which is what shifted
+// punctuation needs: e.key is already '!' and demanding shift as well would be
+// describing the same fact twice.
+function modMatches(want, has) {
+  if (want === 'any') return true;
+  return Boolean(want) === Boolean(has);
+}
+
+function bindingMatches(binding, e) {
+  if (normalizeKey(binding.key) !== normalizeKey(e.key)) return false;
+  return modMatches(binding.shift, e.shiftKey)
+    && modMatches(binding.ctrl, e.ctrlKey)
+    && modMatches(binding.meta, e.metaKey)
+    && modMatches(binding.alt, e.altKey);
+}
+
+// `pending` is the chord prefix currently held ('g'), or null. A chord binding
+// fires only under its prefix, and a plain binding only without one, so the two
+// sets never shadow each other.
+function matchBinding(e, bindings, pending = null) {
+  for (const binding of bindings || []) {
+    if ((binding.chord || null) !== (pending || null)) continue;
+    if (bindingMatches(binding, e)) return binding;
+  }
+  return null;
+}
+
+// Bindings that cost a Gmail native ship optIn and stay off until config names
+// them, so installing an update never silently takes a shortcut away.
+function activeBindings(bindings, config = {}) {
+  const off = new Set(config.disabled || []);
+  const on = new Set(config.enabled || []);
+  return (bindings || []).filter(
+    (b) => !off.has(b.id) && (!b.optIn || on.has(b.id))
+  );
+}
+
+// Ctrl+1..9 is nine bindings sharing one action. Generated rather than typed
+// out, and deliberately not Cmd: that is browser tab switching on mac.
+function accountBindings(count) {
+  const out = [];
+  for (let n = 1; n <= Math.min(count || 0, 9); n += 1) {
+    out.push({ id: `account${n}`, key: String(n), ctrl: true, action: 'account', arg: n });
+  }
+  return out;
+}
+
 const core = {
   CATEGORY_HASHES,
   ACTIVATION_EVENTS,
@@ -130,6 +187,12 @@ const core = {
   nextTabHash,
   shouldIgnore,
   tabsFromLabels,
+  normalizeKey,
+  modMatches,
+  bindingMatches,
+  matchBinding,
+  activeBindings,
+  accountBindings,
 };
 
 // Content scripts share one isolated world, so hang the API off a namespace

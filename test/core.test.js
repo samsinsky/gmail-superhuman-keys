@@ -216,3 +216,82 @@ test('activate reports success', () => {
 test('activate refuses a missing element rather than throwing', () => {
   assert.strictEqual(core.activate(null, (type) => ({ type })), false);
 });
+
+// --- key bindings ----------------------------------------------------------
+
+const key = (k, mods = {}) => ({
+  key: k,
+  shiftKey: !!mods.shift,
+  ctrlKey: !!mods.ctrl,
+  metaKey: !!mods.meta,
+  altKey: !!mods.alt,
+});
+
+const BINDINGS = [
+  { id: 'tabNext', key: 'Tab', action: 'cycleTab', arg: 1 },
+  { id: 'tabPrev', key: 'Tab', shift: true, action: 'cycleTab', arg: -1 },
+  { id: 'spam', key: '!', shift: 'any', chord: 'g', action: 'nav', arg: '#spam' },
+  { id: 'filterUnread', key: 'u', shift: true, optIn: true, action: 'nav', arg: '#x' },
+];
+
+test('normalizeKey lowercases so Shift+M and m compare equal', () => {
+  assert.strictEqual(core.normalizeKey('M'), 'm');
+  assert.strictEqual(core.normalizeKey('Tab'), 'tab');
+  assert.strictEqual(core.normalizeKey('!'), '!');
+  assert.strictEqual(core.normalizeKey(null), '');
+});
+
+test('matchBinding finds a plain key', () => {
+  assert.strictEqual(core.matchBinding(key('Tab'), BINDINGS).id, 'tabNext');
+});
+
+test('matchBinding distinguishes Shift+Tab from Tab', () => {
+  assert.strictEqual(core.matchBinding(key('Tab', { shift: true }), BINDINGS).id, 'tabPrev');
+});
+
+test('matchBinding requires absent modifiers by default, so Ctrl+Tab is not ours', () => {
+  assert.strictEqual(core.matchBinding(key('Tab', { ctrl: true }), BINDINGS), null);
+});
+
+test("matchBinding ignores shift where 'any' is declared, for shifted punctuation", () => {
+  assert.strictEqual(core.matchBinding(key('!', { shift: true }), BINDINGS, 'g').id, 'spam');
+  assert.strictEqual(core.matchBinding(key('!'), BINDINGS, 'g').id, 'spam');
+});
+
+test('matchBinding will not fire a chord binding without its prefix pending', () => {
+  assert.strictEqual(core.matchBinding(key('!', { shift: true }), BINDINGS), null);
+});
+
+test('matchBinding will not fire a plain binding while a prefix is pending', () => {
+  assert.strictEqual(core.matchBinding(key('Tab'), BINDINGS, 'g'), null);
+});
+
+test('matchBinding returns null for a key nobody claims', () => {
+  assert.strictEqual(core.matchBinding(key('q'), BINDINGS), null);
+});
+
+test('activeBindings hides opt-in bindings until they are named', () => {
+  const ids = core.activeBindings(BINDINGS, {}).map((b) => b.id);
+  assert.ok(!ids.includes('filterUnread'));
+  const on = core.activeBindings(BINDINGS, { enabled: ['filterUnread'] }).map((b) => b.id);
+  assert.ok(on.includes('filterUnread'));
+});
+
+test('activeBindings drops anything explicitly disabled', () => {
+  const ids = core.activeBindings(BINDINGS, { disabled: ['tabNext'] }).map((b) => b.id);
+  assert.ok(!ids.includes('tabNext'));
+  assert.ok(ids.includes('tabPrev'));
+});
+
+test('accountBindings generates Ctrl+1..9', () => {
+  const list = core.accountBindings(3);
+  assert.strictEqual(list.length, 3);
+  assert.deepStrictEqual(list.map((b) => b.arg), [1, 2, 3]);
+  assert.strictEqual(core.matchBinding(key('2', { ctrl: true }), list).arg, 2);
+});
+
+test('accountBindings excludes Cmd and Alt, so browser tab switching is untouched', () => {
+  const list = core.accountBindings(9);
+  assert.strictEqual(core.matchBinding(key('2', { ctrl: true, meta: true }), list), null);
+  assert.strictEqual(core.matchBinding(key('2', { meta: true }), list), null);
+});

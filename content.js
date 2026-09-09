@@ -83,28 +83,44 @@
     return true;
   }
 
+  // Actions a binding can name. content.js owns these because every one of them
+  // touches the page; core.js only decides which binding a keypress matched.
+  const ACTIONS = {
+    account: (arg) => switchAccount(arg),
+    cycleTab: (arg) => cycleTab(arg),
+  };
+
+  // Ctrl+1..9 is generated from however many accounts are configured, so an
+  // unconfigured slot never claims a keypress it cannot act on.
+  const bindings = core.activeBindings(
+    [
+      ...core.accountBindings((config.accounts || []).length),
+      ...(globalThis.GSK_BINDINGS || []),
+    ],
+    config
+  );
+
+  function run(binding) {
+    const action = ACTIONS[binding.action];
+    if (!action) { log('no action for', binding.id); return false; }
+    return action(binding.arg) === true;
+  }
+
   // Capture phase: Gmail binds its own handlers on the document, so we have to
   // see the event first to claim it.
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing) return;
     if (core.shouldIgnore(e.target)) return;
 
-    // Ctrl+1..9 -> switch account. Excludes Cmd (browser tab switching on mac)
-    // and Alt so we never fight another binding.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && /^[1-9]$/.test(e.key)) {
-      if (switchAccount(Number(e.key))) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      return;
-    }
+    const binding = core.matchBinding(e, bindings);
+    if (!binding) return;
 
-    // Tab / Shift+Tab -> cycle inbox tabs.
-    if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (cycleTab(e.shiftKey ? -1 : 1)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+    // Only swallow the keypress if the action actually did something. A binding
+    // that declines (no account in that slot, one tab to cycle) hands the key
+    // back to Gmail rather than eating it.
+    if (run(binding)) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   }, true);
 
@@ -114,5 +130,5 @@
   window.addEventListener('hashchange', warm);
   setTimeout(warm, 2000);
 
-  log('ready,', (config.accounts || []).length, 'accounts');
+  log('ready,', bindings.length, 'bindings,', (config.accounts || []).length, 'accounts');
 })();

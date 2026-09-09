@@ -6,7 +6,7 @@
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["config.js", "core.js", "content.js"],
+      "js": ["config.js", "core.js", "bindings.js", "content.js"],
       "run_at": "document_idle"
     }
   ]
