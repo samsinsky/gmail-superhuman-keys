@@ -83,6 +83,25 @@
     return true;
   }
 
+  // Fire one of Gmail's own shortcuts. Gmail reads e.key and does not check
+  // isTrusted, so a plain KeyboardEvent at document.body is enough -- measured
+  // 2026-09-09 for both a plain letter and shifted punctuation, with and
+  // without keyCode pinned. diag/inspect-keys.js is the script that established
+  // it; rerun that if the rebinds ever stop working.
+  function sendKey(spec) {
+    if (!spec || !spec.key) return false;
+    log('sendKey ->', (spec.shift ? 'Shift+' : '') + spec.key);
+    for (const type of ['keydown', 'keypress', 'keyup']) {
+      document.body.dispatchEvent(new KeyboardEvent(type, {
+        key: spec.key,
+        bubbles: true,
+        cancelable: true,
+        shiftKey: !!spec.shift,
+      }));
+    }
+    return true;
+  }
+
   // Actions a binding can name. content.js owns these because every one of them
   // touches the page; core.js only decides which binding a keypress matched.
   const ACTIONS = {
@@ -97,6 +116,7 @@
     // The clipboard write is async but the binding is claimed synchronously:
     // returning true here means "this keystroke was ours", not "the clipboard
     // is written". The write needs the document focused and can be refused.
+    key: (arg) => sendKey(arg),
     copyLink: () => {
       const url = window.location.href;
       navigator.clipboard.writeText(url)

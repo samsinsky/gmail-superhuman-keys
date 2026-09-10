@@ -34,6 +34,29 @@ globalThis.GSK_BINDINGS = [
   { id: 'filterStarred', key: 's', shift: true, optIn: true, action: 'nav', arg: '#search/is%3Astarred' },
   { id: 'filterImportant', key: 'i', shift: true, optIn: true, action: 'nav', arg: '#search/is%3Aimportant' },
 
+  // Rebinds that cost nothing: h and Shift+M are unbound in Gmail, so these are
+  // additive and Gmail's own b and m keep working underneath. Note that h is
+  // also the leaf of the g+h chord; a chord binding only resolves under its
+  // prefix, so the two never shadow each other.
+  //
+  // Both act on the conversation under Gmail's cursor, and Gmail has no cursor
+  // until you press j/k or click -- hovering does not set one. Superhuman always
+  // has a focused conversation, so these feel like they should work straight off
+  // the list and do not. That is Gmail's model, not something the binding can
+  // fix: auto-selecting a row would risk acting on the wrong conversation.
+  { id: 'snooze', key: 'h', action: 'key', arg: { key: 'b' } },
+  { id: 'mute', key: 'm', shift: true, action: 'key', arg: { key: 'm' } },
+
+  // Superhuman's pop-out variants. Gmail already binds Shift+R and Shift+F to
+  // reply and forward in a new window, matching Superhuman exactly; only these
+  // two need moving, and both keys are free in Gmail.
+  //
+  // Gmail's d is documented as "compose in a new tab" but pops out a compose
+  // window, which is what Superhuman's Shift+C does too, so the mapping is
+  // right even though the Gmail docs describe it differently.
+  { id: 'popReplyAll', key: 'Enter', shift: true, action: 'key', arg: { key: 'a', shift: true } },
+  { id: 'popCompose', key: 'c', shift: true, action: 'key', arg: { key: 'd' } },
+
   // Gmail already puts the conversation permalink in the URL, so there is
   // nothing to look up. Ctrl+/ is unbound in both Gmail and Chrome.
   { id: 'copyLink', key: '/', ctrl: true, action: 'copyLink' },
