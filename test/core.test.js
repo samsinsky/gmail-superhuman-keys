@@ -393,3 +393,29 @@ test('a plain binding does not fire while a chord is pending', () => {
   assert.strictEqual(r.binding, null);
   assert.strictEqual(r.pending, null);
 });
+
+// --- synthesizing a shifted keystroke --------------------------------------
+// A real keyboard reports Shift+A as key 'A', not 'a' with shiftKey set. Gmail
+// reads e.key, so synthesizing lowercase under shift produced a keystroke it
+// ignored -- which is why Shift+Enter (pop out reply-all, firing Shift+a) did
+// nothing while the unshifted rebinds worked.
+
+test('synthKey uppercases a letter when shift is set, as a keyboard would', () => {
+  assert.strictEqual(core.synthKey({ key: 'a', shift: true }), 'A');
+  assert.strictEqual(core.synthKey({ key: 'i', shift: true }), 'I');
+});
+
+test('synthKey leaves an unshifted letter alone', () => {
+  assert.strictEqual(core.synthKey({ key: 'b' }), 'b');
+  assert.strictEqual(core.synthKey({ key: 'm', shift: false }), 'm');
+});
+
+test('synthKey leaves named keys alone even under shift', () => {
+  assert.strictEqual(core.synthKey({ key: 'Enter', shift: true }), 'Enter');
+  assert.strictEqual(core.synthKey({ key: 'Escape', shift: true }), 'Escape');
+});
+
+test('synthKey leaves punctuation alone, since the character already encodes shift', () => {
+  assert.strictEqual(core.synthKey({ key: ';', shift: true }), ';');
+  assert.strictEqual(core.synthKey({ key: '!', shift: true }), '!');
+});

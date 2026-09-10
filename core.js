@@ -172,6 +172,17 @@ function isModifierKey(e) {
   return MODIFIER_KEYS.has(normalizeKey(e.key));
 }
 
+// The key string to dispatch for a synthesized keystroke. A real keyboard
+// reports Shift+A as key 'A', and Gmail reads e.key, so sending 'a' with
+// shiftKey set is a keystroke Gmail ignores. Only single letters are cased:
+// named keys (Enter, Escape) keep their spelling, and punctuation already
+// encodes the shift in the character itself.
+function synthKey(spec) {
+  const key = String((spec && spec.key) || '');
+  if (spec && spec.shift && /^[a-z]$/.test(key)) return key.toUpperCase();
+  return key;
+}
+
 // One keypress against the table, given the prefix currently armed. Returns the
 // binding to run (or null) and the prefix to hold next.
 //
@@ -234,6 +245,7 @@ const core = {
   MODIFIER_KEYS,
   isModifierKey,
   resolveKey,
+  synthKey,
   activeBindings,
   accountBindings,
 };

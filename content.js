@@ -90,10 +90,11 @@
   // it; rerun that if the rebinds ever stop working.
   function sendKey(spec) {
     if (!spec || !spec.key) return false;
-    log('sendKey ->', (spec.shift ? 'Shift+' : '') + spec.key);
+    const key = core.synthKey(spec);
+    log('sendKey ->', (spec.shift ? 'Shift+' : '') + key);
     for (const type of ['keydown', 'keypress', 'keyup']) {
       document.body.dispatchEvent(new KeyboardEvent(type, {
-        key: spec.key,
+        key,
         bubbles: true,
         cancelable: true,
         shiftKey: !!spec.shift,
