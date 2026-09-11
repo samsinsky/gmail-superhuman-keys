@@ -419,3 +419,29 @@ test('synthKey leaves punctuation alone, since the character already encodes shi
   assert.strictEqual(core.synthKey({ key: ';', shift: true }), ';');
   assert.strictEqual(core.synthKey({ key: '!', shift: true }), '!');
 });
+
+// --- read/unread toggle ----------------------------------------------------
+// Superhuman's u toggles; Gmail splits it across Shift+i (mark read) and
+// Shift+u (mark unread), so the direction depends on the row's current state.
+// Gmail marks unread rows tr.zA.zE and read rows tr.zA.yO -- measured against
+// the live thread list, where the two partition every row.
+
+test('readToggleSpec marks an unread conversation read', () => {
+  assert.deepStrictEqual(core.readToggleSpec(true), { key: 'i', shift: true });
+});
+
+test('readToggleSpec marks a read conversation unread', () => {
+  assert.deepStrictEqual(core.readToggleSpec(false), { key: 'u', shift: true });
+});
+
+test('readToggleSpec round-trips through synthKey as a shifted letter', () => {
+  assert.strictEqual(core.synthKey(core.readToggleSpec(true)), 'I');
+  assert.strictEqual(core.synthKey(core.readToggleSpec(false)), 'U');
+});
+
+test('isUnreadRow reads Gmail unread marker class', () => {
+  const row = (cls) => ({ classList: { contains: (c) => cls.includes(c) } });
+  assert.strictEqual(core.isUnreadRow(row(['zA', 'zE'])), true);
+  assert.strictEqual(core.isUnreadRow(row(['zA', 'yO'])), false);
+  assert.strictEqual(core.isUnreadRow(null), false);
+});

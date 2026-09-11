@@ -103,6 +103,27 @@
     return true;
   }
 
+  // Activate one of Gmail's own toolbar controls. Reuses core.activate, which
+  // fires mousedown -> mouseup -> click: Gmail's controls are Closure and
+  // activate on mousedown, so a bare el.click() can dispatch into nothing. The
+  // Move to Inbox control carries no jsaction, same as the inbox tabs did.
+  //
+  // Presence is the whole guard, and it is a sound one: measured against live
+  // Gmail, Move to Inbox is absent from the DOM entirely in the inbox view even
+  // with a conversation selected, and present in the archive view. Deliberately
+  // no visibility check -- every toolbar button measures zero width in a
+  // backgrounded tab, so that would fail for reasons unrelated to whether the
+  // control applies.
+  function clickControl(selector) {
+    if (!selector) return false;
+    const el = document.querySelector(selector);
+    if (!el) { log('control not present:', selector); return false; }
+    log('activate control ->', selector);
+    return core.activate(el, (type) => new MouseEvent(type, {
+      bubbles: true, cancelable: true, view: window, button: 0,
+    }));
+  }
+
   // Actions a binding can name. content.js owns these because every one of them
   // touches the page; core.js only decides which binding a keypress matched.
   const ACTIONS = {
@@ -118,6 +139,22 @@
     // returning true here means "this keystroke was ours", not "the clipboard
     // is written". The write needs the document focused and can be refused.
     key: (arg) => sendKey(arg),
+    click: (arg) => clickControl(arg),
+    // Superhuman's u toggles read state, so which Gmail shortcut to fire
+    // depends on where the conversation currently is. Gmail acts on checked
+    // conversations when there are any, otherwise on the row under the cursor,
+    // so read the state from whichever it will act on. With a conversation
+    // open there is no row at all, and it has necessarily been read, so
+    // mark-unread is the only direction that makes sense.
+    readToggle: () => {
+      // A checked row carries x7 and the cursor row carries btb. Measured
+      // against the live list: checking a conversation adds x7, and the rows
+      // expose no aria-selected at all.
+      const checked = document.querySelector('tr.zA.x7');
+      const row = checked || document.querySelector('tr.zA.btb');
+      if (!row) return sendKey(core.readToggleSpec(false));
+      return sendKey(core.readToggleSpec(core.isUnreadRow(row)));
+    },
     copyLink: () => {
       const url = window.location.href;
       navigator.clipboard.writeText(url)

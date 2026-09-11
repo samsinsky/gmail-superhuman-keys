@@ -57,6 +57,35 @@ globalThis.GSK_BINDINGS = [
   { id: 'popReplyAll', key: 'Enter', shift: true, action: 'key', arg: { key: 'a', shift: true } },
   { id: 'popCompose', key: 'c', shift: true, action: 'key', arg: { key: 'd' } },
 
+  // Rebinds that each take a key Gmail already uses. All opt-in; the comment on
+  // each says what it costs.
+  //
+  // Enter opens a conversation in Gmail. Gmail's o still opens, so the loss is
+  // survivable, but it is a real one.
+  { id: 'replyAll', key: 'Enter', optIn: true, action: 'key', arg: { key: 'a' } },
+  // A genuine toggle, not mark-unread-only: the direction is chosen from the
+  // row's unread marker class. Costs Gmail's u (back to the thread list), which
+  // is what backToList below gives back.
+  { id: 'readToggle', key: 'u', optIn: true, action: 'readToggle' },
+  // Escape is unbound in Gmail's thread list, so this costs nothing on its own.
+  // It exists to replace what readToggle takes away.
+  { id: 'backToList', key: 'Escape', optIn: true, action: 'key', arg: { key: 'u' } },
+  // Costs Gmail's o (open conversation). Enter still opens unless replyAll is
+  // also enabled, so think before turning both on.
+  { id: 'expandMessage', key: 'o', optIn: true, action: 'key', arg: { key: ';' } },
+  { id: 'expandAll', key: 'o', shift: true, optIn: true, action: 'key', arg: { key: ';' } },
+
+  // Superhuman's Mark Not Done. Gmail's archive and Superhuman's Done are the
+  // same operation -- both drop the INBOX label -- so undoing it means re-adding
+  // that label, which Gmail exposes only as a toolbar control. This is the one
+  // binding that reads the DOM.
+  //
+  // Returning false when the control is absent means the keypress falls through
+  // to Gmail rather than being swallowed, which is what you want in the inbox
+  // where there is nothing to un-archive. Shift+E is unbound in Gmail, so
+  // falling through costs nothing.
+  { id: 'markNotDone', key: 'e', shift: true, action: 'click', arg: '[aria-label="Move to Inbox"]' },
+
   // Gmail already puts the conversation permalink in the URL, so there is
   // nothing to look up. Ctrl+/ is unbound in both Gmail and Chrome.
   { id: 'copyLink', key: '/', ctrl: true, action: 'copyLink' },

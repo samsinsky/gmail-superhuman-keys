@@ -183,6 +183,22 @@ function synthKey(spec) {
   return key;
 }
 
+// Gmail marks an unread row tr.zA.zE and a read one tr.zA.yO. Measured against
+// the live thread list: the two classes partition every row, so the marker is
+// a reliable read of the current state rather than a guess.
+const UNREAD_ROW_CLASS = 'zE';
+
+function isUnreadRow(row) {
+  return !!(row && row.classList && row.classList.contains(UNREAD_ROW_CLASS));
+}
+
+// Superhuman's u toggles read state. Gmail splits that across Shift+i (mark
+// read) and Shift+u (mark unread), so which one to fire depends on where the
+// conversation currently is.
+function readToggleSpec(isUnread) {
+  return isUnread ? { key: 'i', shift: true } : { key: 'u', shift: true };
+}
+
 // One keypress against the table, given the prefix currently armed. Returns the
 // binding to run (or null) and the prefix to hold next.
 //
@@ -246,6 +262,9 @@ const core = {
   isModifierKey,
   resolveKey,
   synthKey,
+  UNREAD_ROW_CLASS,
+  isUnreadRow,
+  readToggleSpec,
   activeBindings,
   accountBindings,
 };
