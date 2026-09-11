@@ -83,6 +83,37 @@
     return true;
   }
 
+  // Gmail's own actions -- keyboard and toolbar alike -- act on checked
+  // conversations and ignore both the mouse and the keyboard cursor. Superhuman
+  // acts on whatever is focused, so to get that feel we tick a box first. The
+  // mouse position is tracked here because Gmail does not expose it: the hovered
+  // row is what a Superhuman user means by "this conversation".
+  let hoveredRow = null;
+  document.addEventListener('mouseover', (e) => {
+    const row = e.target && e.target.closest && e.target.closest('tr.zA');
+    if (row) hoveredRow = row;
+  }, true);
+
+  // Checked rows carry x7 and the cursor row carries btb -- measured against the
+  // live list, where the rows expose no aria-selected at all.
+  function ensureTarget() {
+    const target = core.pickTarget({
+      checked: document.querySelector('tr.zA.x7'),
+      hovered: hoveredRow && hoveredRow.isConnected ? hoveredRow : null,
+      cursor: document.querySelector('tr.zA.btb'),
+    });
+    if (!target.row) { log('no conversation to act on'); return false; }
+    if (!target.needsCheck) return true;
+
+    const box = target.row.querySelector('[role="checkbox"]');
+    if (!box) { log('row has no checkbox'); return false; }
+    log('selecting', (target.row.querySelector('.bog') || {}).textContent);
+    core.activate(box, (type) => new MouseEvent(type, {
+      bubbles: true, cancelable: true, view: window, button: 0,
+    }));
+    return true;
+  }
+
   // Fire one of Gmail's own shortcuts. Gmail reads e.key and does not check
   // isTrusted, so a plain KeyboardEvent at document.body is enough -- measured
   // 2026-09-09 for both a plain letter and shifted punctuation, with and
@@ -177,6 +208,10 @@
   function run(binding) {
     const action = ACTIONS[binding.action];
     if (!action) { log('no action for', binding.id); return false; }
+    // Bindings that act on a conversation need one checked first, or Gmail
+    // quietly does nothing. Refusing here hands the key back rather than
+    // firing a bulk action at whatever Gmail felt like.
+    if (binding.needsTarget && !ensureTarget()) return false;
     return action(binding.arg) === true;
   }
 

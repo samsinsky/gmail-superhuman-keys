@@ -445,3 +445,41 @@ test('isUnreadRow reads Gmail unread marker class', () => {
   assert.strictEqual(core.isUnreadRow(row(['zA', 'yO'])), false);
   assert.strictEqual(core.isUnreadRow(null), false);
 });
+
+// --- choosing what an action acts on ---------------------------------------
+// Gmail acts on checked conversations and ignores both the mouse and the
+// keyboard cursor -- confirmed by hand for e, b, m and the Move to Inbox
+// control. Superhuman acts on whatever is focused, so matching that means
+// ticking a box first. An existing selection always wins, so a deliberate
+// multi-select is never silently redirected at the row under the mouse.
+
+const rowStub = (name) => ({ name });
+
+test('pickTarget prefers an existing selection and leaves it alone', () => {
+  const t = core.pickTarget({ checked: rowStub('checked'), hovered: rowStub('hovered'), cursor: rowStub('cursor') });
+  assert.strictEqual(t.row.name, 'checked');
+  assert.strictEqual(t.needsCheck, false);
+});
+
+test('pickTarget falls to the hovered row when nothing is checked', () => {
+  const t = core.pickTarget({ checked: null, hovered: rowStub('hovered'), cursor: rowStub('cursor') });
+  assert.strictEqual(t.row.name, 'hovered');
+  assert.strictEqual(t.needsCheck, true);
+});
+
+test('pickTarget falls to the cursor row when nothing is hovered', () => {
+  const t = core.pickTarget({ checked: null, hovered: null, cursor: rowStub('cursor') });
+  assert.strictEqual(t.row.name, 'cursor');
+  assert.strictEqual(t.needsCheck, true);
+});
+
+test('pickTarget refuses rather than guessing when there is nothing to act on', () => {
+  const t = core.pickTarget({ checked: null, hovered: null, cursor: null });
+  assert.strictEqual(t.row, null);
+  assert.strictEqual(t.needsCheck, false);
+});
+
+test('pickTarget tolerates an empty argument', () => {
+  assert.strictEqual(core.pickTarget({}).row, null);
+  assert.strictEqual(core.pickTarget().row, null);
+});

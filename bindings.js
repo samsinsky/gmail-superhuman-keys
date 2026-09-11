@@ -4,6 +4,13 @@
 // action names: 'account' | 'cycleTab' | 'nav' | 'key' | 'click' | 'copyLink'
 // optIn: true means the binding costs a Gmail native and stays off until
 // config.enabled names its id.
+//
+// needsTarget: true means the binding acts on a conversation. Gmail acts on
+// checked conversations and ignores the mouse and the keyboard cursor, so
+// content.js ticks a box first -- the hovered row, or the cursor row, whichever
+// it finds -- and leaves an existing selection alone. Without this the key
+// quietly does nothing, which is what makes these feel broken next to
+// Superhuman.
 
 globalThis.GSK_BINDINGS = [
   { id: 'tabNext', key: 'Tab', action: 'cycleTab', arg: 1 },
@@ -44,8 +51,8 @@ globalThis.GSK_BINDINGS = [
   // has a focused conversation, so these feel like they should work straight off
   // the list and do not. That is Gmail's model, not something the binding can
   // fix: auto-selecting a row would risk acting on the wrong conversation.
-  { id: 'snooze', key: 'h', action: 'key', arg: { key: 'b' } },
-  { id: 'mute', key: 'm', shift: true, action: 'key', arg: { key: 'm' } },
+  { id: 'snooze', key: 'h', needsTarget: true, action: 'key', arg: { key: 'b' } },
+  { id: 'mute', key: 'm', shift: true, needsTarget: true, action: 'key', arg: { key: 'm' } },
 
   // Superhuman's pop-out variants. Gmail already binds Shift+R and Shift+F to
   // reply and forward in a new window, matching Superhuman exactly; only these
@@ -66,7 +73,7 @@ globalThis.GSK_BINDINGS = [
   // A genuine toggle, not mark-unread-only: the direction is chosen from the
   // row's unread marker class. Costs Gmail's u (back to the thread list), which
   // is what backToList below gives back.
-  { id: 'readToggle', key: 'u', optIn: true, action: 'readToggle' },
+  { id: 'readToggle', key: 'u', optIn: true, needsTarget: true, action: 'readToggle' },
   // Escape is unbound in Gmail's thread list, so this costs nothing on its own.
   // It exists to replace what readToggle takes away.
   { id: 'backToList', key: 'Escape', optIn: true, action: 'key', arg: { key: 'u' } },
@@ -84,7 +91,7 @@ globalThis.GSK_BINDINGS = [
   // to Gmail rather than being swallowed, which is what you want in the inbox
   // where there is nothing to un-archive. Shift+E is unbound in Gmail, so
   // falling through costs nothing.
-  { id: 'markNotDone', key: 'e', shift: true, action: 'click', arg: '[aria-label="Move to Inbox"]' },
+  { id: 'markNotDone', key: 'e', shift: true, needsTarget: true, action: 'click', arg: '[aria-label="Move to Inbox"]' },
 
   // Gmail already puts the conversation permalink in the URL, so there is
   // nothing to look up. Ctrl+/ is unbound in both Gmail and Chrome.

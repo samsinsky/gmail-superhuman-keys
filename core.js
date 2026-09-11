@@ -199,6 +199,26 @@ function readToggleSpec(isUnread) {
   return isUnread ? { key: 'i', shift: true } : { key: 'u', shift: true };
 }
 
+// Which conversation an action should act on, and whether we have to tick its
+// box to make Gmail agree.
+//
+// Gmail acts on checked conversations and ignores both the mouse and the
+// keyboard cursor -- confirmed by hand for e, b, m and the Move to Inbox
+// control. Superhuman instead acts on whatever is focused, which is why these
+// shortcuts feel broken in Gmail until you remember the checkbox.
+//
+// An existing selection always wins, so a deliberate multi-select is never
+// silently redirected at whatever the mouse happens to be over. Failing that we
+// take the hovered row, then the cursor row, and otherwise refuse: acting on an
+// arbitrary conversation is worse than doing nothing.
+function pickTarget(sources) {
+  const { checked, hovered, cursor } = sources || {};
+  if (checked) return { row: checked, needsCheck: false };
+  if (hovered) return { row: hovered, needsCheck: true };
+  if (cursor) return { row: cursor, needsCheck: true };
+  return { row: null, needsCheck: false };
+}
+
 // One keypress against the table, given the prefix currently armed. Returns the
 // binding to run (or null) and the prefix to hold next.
 //
@@ -265,6 +285,7 @@ const core = {
   UNREAD_ROW_CLASS,
   isUnreadRow,
   readToggleSpec,
+  pickTarget,
   activeBindings,
   accountBindings,
 };
