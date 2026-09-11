@@ -82,6 +82,21 @@ globalThis.GSK_BINDINGS = [
   { id: 'expandMessage', key: 'o', optIn: true, action: 'key', arg: { key: ';' } },
   { id: 'expandAll', key: 'o', shift: true, optIn: true, action: 'key', arg: { key: ';' } },
 
+  // Pass-through bindings: same key in, same key out. Superhuman and Gmail agree
+  // on all six of these, so the key never changes -- what changes is what they
+  // act on. Gmail wants a checkbox; needsTarget ticks the hovered or cursored
+  // conversation first, so they act on what you are looking at the way
+  // Superhuman does.
+  //
+  // These are the bindings that map a key to itself, which is what the
+  // synthesizing guard in content.js exists for.
+  { id: 'archive', key: 'e', needsTarget: true, action: 'key', arg: { key: 'e' } },
+  { id: 'trash', key: '#', shift: 'any', needsTarget: true, action: 'key', arg: { key: '#', shift: true } },
+  { id: 'spam', key: '!', shift: 'any', needsTarget: true, action: 'key', arg: { key: '!', shift: true } },
+  { id: 'star', key: 's', needsTarget: true, action: 'key', arg: { key: 's' } },
+  { id: 'label', key: 'l', needsTarget: true, action: 'key', arg: { key: 'l' } },
+  { id: 'moveTo', key: 'v', needsTarget: true, action: 'key', arg: { key: 'v' } },
+
   // Superhuman's Mark Not Done. Gmail's archive and Superhuman's Done are the
   // same operation -- both drop the INBOX label -- so undoing it means re-adding
   // that label, which Gmail exposes only as a toolbar control. This is the one

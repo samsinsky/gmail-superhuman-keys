@@ -119,17 +119,30 @@
   // 2026-09-09 for both a plain letter and shifted punctuation, with and
   // without keyCode pinned. diag/inspect-keys.js is the script that established
   // it; rerun that if the rebinds ever stop working.
+  // True while we are dispatching a keystroke of our own. dispatchEvent is
+  // synchronous, so our listener re-enters during sendKey and would match the
+  // very key it just fired. That is harmless while every binding maps one key to
+  // a different one, but the pass-through bindings map a key to itself: without
+  // this guard, e would tick a row, fire e, match again, and loop until the tab
+  // died.
+  let synthesizing = false;
+
   function sendKey(spec) {
     if (!spec || !spec.key) return false;
     const key = core.synthKey(spec);
     log('sendKey ->', (spec.shift ? 'Shift+' : '') + key);
-    for (const type of ['keydown', 'keypress', 'keyup']) {
-      document.body.dispatchEvent(new KeyboardEvent(type, {
-        key,
-        bubbles: true,
-        cancelable: true,
-        shiftKey: !!spec.shift,
-      }));
+    synthesizing = true;
+    try {
+      for (const type of ['keydown', 'keypress', 'keyup']) {
+        document.body.dispatchEvent(new KeyboardEvent(type, {
+          key,
+          bubbles: true,
+          cancelable: true,
+          shiftKey: !!spec.shift,
+        }));
+      }
+    } finally {
+      synthesizing = false;
     }
     return true;
   }
@@ -234,6 +247,7 @@
   // see the event first to claim it.
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing) return;
+    if (synthesizing) return;
     if (core.shouldIgnore(e.target)) return;
 
     const { binding, pending: next } = core.resolveKey(e, bindings, pending);
