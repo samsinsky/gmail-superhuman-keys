@@ -5,6 +5,10 @@
 // optIn: true means the binding costs a Gmail native and stays off until
 // config.enabled names its id.
 //
+// requiresThread: true means the binding only means something inside an open
+// conversation; in the list the key is handed back to Gmail. That is how Enter
+// and o keep Gmail's meaning where Superhuman's would be wrong.
+//
 // needsTarget: true means the binding acts on a conversation. Gmail acts on
 // checked conversations and ignores the mouse and the keyboard cursor, so
 // content.js ticks a box first -- the hovered row, or the cursor row, whichever
@@ -67,9 +71,11 @@ globalThis.GSK_BINDINGS = [
   // Rebinds that each take a key Gmail already uses. All opt-in; the comment on
   // each says what it costs.
   //
-  // Enter opens a conversation in Gmail. Gmail's o still opens, so the loss is
-  // survivable, but it is a real one.
-  { id: 'replyAll', key: 'Enter', optIn: true, action: 'key', arg: { key: 'a' } },
+  // Superhuman's Enter is context-dependent: it opens from the list and replies
+  // all inside a conversation. requiresThread reproduces that -- in the list the
+  // key is handed back and Gmail opens the conversation as usual. Because
+  // nothing is taken away, this is on by default.
+  { id: 'replyAll', key: 'Enter', requiresThread: true, action: 'key', arg: { key: 'a' } },
   // A genuine toggle, not mark-unread-only: the direction is chosen from the
   // row's unread marker class. Costs Gmail's u (back to the thread list), which
   // is what backToList below gives back.
@@ -77,10 +83,14 @@ globalThis.GSK_BINDINGS = [
   // Escape is unbound in Gmail's thread list, so this costs nothing on its own.
   // It exists to replace what readToggle takes away.
   { id: 'backToList', key: 'Escape', optIn: true, action: 'key', arg: { key: 'u' } },
-  // Costs Gmail's o (open conversation). Enter still opens unless replyAll is
-  // also enabled, so think before turning both on.
-  { id: 'expandMessage', key: 'o', optIn: true, action: 'key', arg: { key: ';' } },
-  { id: 'expandAll', key: 'o', shift: true, optIn: true, action: 'key', arg: { key: ';' } },
+  // Superhuman's o expands the focused message -- and so does Gmail's own o
+  // inside a conversation, acting on the message you moved to with n/p. So
+  // there is deliberately no binding on o here: remapping it to ; replaced a
+  // per-message expand with an expand-all, which is strictly worse than leaving
+  // Gmail alone. The earlier draft did exactly that.
+  //
+  // Shift+O is unbound in Gmail, so expand-all is additive and worth having.
+  { id: 'expandAll', key: 'o', shift: true, requiresThread: true, action: 'key', arg: { key: ';' } },
 
   // Pass-through bindings: same key in, same key out. Superhuman and Gmail agree
   // on all six of these, so the key never changes -- what changes is what they

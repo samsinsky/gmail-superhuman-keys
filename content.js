@@ -119,6 +119,18 @@
   // 2026-09-09 for both a plain letter and shifted punctuation, with and
   // without keyCode pinned. diag/inspect-keys.js is the script that established
   // it; rerun that if the rebinds ever stop working.
+  // Is a conversation open, as opposed to the thread list? Measured against live
+  // Gmail: the message container .adn is present with a conversation open and
+  // absent in the list, while tr.zA rows persist in both -- so row presence
+  // cannot be used for this.
+  //
+  // This is what lets Enter and o keep Gmail's meaning in the list (open the
+  // conversation) while taking Superhuman's meaning inside one (reply all,
+  // expand). Superhuman's own Enter is context-dependent in exactly this way.
+  function threadOpen() {
+    return !!document.querySelector('.adn');
+  }
+
   // True while we are dispatching a keystroke of our own. dispatchEvent is
   // synchronous, so our listener re-enters during sendKey and would match the
   // very key it just fired. That is harmless while every binding maps one key to
@@ -224,6 +236,9 @@
     // Bindings that act on a conversation need one checked first, or Gmail
     // quietly does nothing. Refusing here hands the key back rather than
     // firing a bulk action at whatever Gmail felt like.
+    // Bindings that only mean something inside an open conversation hand the
+    // key back in the list, where Gmail's own meaning is the one we want.
+    if (binding.requiresThread && !threadOpen()) { log('no conversation open'); return false; }
     if (binding.needsTarget && !ensureTarget()) return false;
     return action(binding.arg) === true;
   }
