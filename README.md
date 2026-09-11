@@ -1,22 +1,80 @@
 # Gmail Superhuman Keys
 
-Two Superhuman shortcuts, added to Gmail:
-
-| Key | Does |
-|---|---|
-| `Ctrl+1` … `Ctrl+9` | Switch Google account |
-| `Tab` / `Shift+Tab` | Next / previous inbox tab (Primary, Social, Promotions, …) |
+Superhuman's keyboard shortcuts, added to Gmail.
 
 ![Cycling inbox tabs with Tab, then selecting and deleting with Gmail's own x and # shortcuts, with an onscreen keyboard showing the keypresses](demo.gif)
 
-Keypresses are shown on the onscreen keyboard. Because the shortcuts only move
-Gmail's own tabs, everything native keeps working on top of them — above, `Tab`
-cycles Primary → Promotions → Social, then `x` selects and `#` deletes without
-leaving the keyboard.
+No OAuth, no Gmail API, no network calls. Every shortcut either changes the URL,
+fires one of Gmail's own keystrokes, or clicks a control Gmail already renders.
+Nothing touches your mail that Gmail could not already do.
 
-Requires Gmail's inbox type to be **Default** (the one with tabs). No OAuth, no
-Gmail API, no network calls — it reads the tab bar and changes the URL. Nothing
-touches your mail.
+## Shortcuts
+
+On by default:
+
+| Key | Does | id |
+|---|---|---|
+| `Ctrl+1` … `Ctrl+9` | Switch Google account | `account1`…`account9` |
+| `Tab` / `Shift+Tab` | Next / previous inbox tab | `tabNext`, `tabPrev` |
+| `g` `e` | Go to Done (archived mail) | `goDone` |
+| `g` `m` | Go to Muted | `goMuted` |
+| `g` `h` | Go to Reminders (snoozed) | `goReminders` |
+| `g` `!` | Go to Spam | `goSpam` |
+| `g` `#` | Go to Trash | `goTrash` |
+| `h` | Snooze | `snooze` |
+| `Shift+M` | Mute | `mute` |
+| `Shift+E` | Mark not done (back to inbox) | `markNotDone` |
+| `e` | Mark done (archive) | `archive` |
+| `#` | Trash | `trash` |
+| `!` | Spam | `spam` |
+| `s` | Star | `star` |
+| `l` | Label | `label` |
+| `v` | Move to | `moveTo` |
+| `Enter` | Reply all (inside a conversation) | `replyAll` |
+| `Shift+Enter` | Pop out reply all | `popReplyAll` |
+| `Shift+C` | Pop out compose | `popCompose` |
+| `Shift+O` | Expand / collapse conversation | `expandAll` |
+| `Ctrl+/` | Copy link to conversation | `copyLink` |
+
+Off until you ask for them, because each takes a Gmail shortcut away:
+
+| Key | Does | Costs | id |
+|---|---|---|---|
+| `Shift+U` | Filter to unread | Gmail's mark-as-unread | `filterUnread` |
+| `Shift+S` | Filter to starred | nothing | `filterStarred` |
+| `Shift+I` | Filter to important | Gmail's mark-as-read | `filterImportant` |
+| `u` | Toggle read / unread | Gmail's back-to-list | `readToggle` |
+| `Escape` | Back to the list | Gmail's focus-compose | `backToList` |
+
+Turn them on by id in `config.js`:
+
+```js
+enabled: ['filterStarred', 'readToggle', 'backToList'],
+```
+
+`readToggle` and `backToList` are a pair — the first takes `u`, the second gives
+its old job to `Escape`. Enabling `filterImportant` without `readToggle` leaves
+no way to mark a conversation read at all.
+
+### Already the same
+
+These need no binding: Superhuman and Gmail agree, and Gmail's own shortcut is
+left alone. `r` reply, `f` forward, `Shift+R` / `Shift+F` pop-out reply and
+forward, `c` compose, `/` search, `?` shortcuts, `z` undo, `x` select, `j` / `k`
+next and previous conversation, `n` / `p` next and previous message, `o` expand
+the focused message, `y` remove label, `[` / `]` archive and move on,
+`g` `i` / `s` / `t` / `d` / `a` / `l` for Inbox, Starred, Sent, Drafts, All mail
+and Label.
+
+### Not here
+
+`Cmd+K` needs a command palette, and this extension deliberately draws no UI of
+its own. The calendar keys (`0`, `-`, `=`) and snippets (`Cmd+;`) would need the
+same. Superhuman's `Shift+R` no-reply filter is computed server-side and no Gmail
+search operator expresses it. The compose-window shortcuts
+(`Cmd+Shift+O/S/M/A/,/I/H/L`, `Cmd+U` unsubscribe, `Cmd+Shift+Enter` send and
+done) are not here yet: `shouldIgnore` exempts compose entirely, and inverting
+that guard is its own piece of work.
 
 ## Install
 
@@ -27,7 +85,13 @@ touches your mail.
 3. Turn on **Developer mode** (top right)
 4. **Load unpacked** → select this folder
 
-After editing `config.js`, hit reload on the extension card, then reload Gmail.
+After editing any file, hit reload on the extension card **and then reload
+Gmail**. Reloading the extension alone is not enough: content scripts are
+injected at page load, so an already-open Gmail tab keeps running the old code.
+
+Requires Gmail's inbox type to be **Default** (the one with tabs) for `Tab` to
+have anything to cycle, and Gmail's keyboard shortcuts turned on
+(Settings → General → Keyboard shortcuts) for everything that fires one.
 
 ## Configure
 
@@ -41,30 +105,65 @@ Everything lives in `config.js`:
 - **`tabs`** — leave `null` to read Gmail's own tab bar, so enabling or
   disabling a category in Gmail settings just works. Set a list like
   `['Primary', 'Promotions']` to cycle a subset.
-- **`debug`** — `true` logs every detection and navigation to the console.
+- **`enabled`** — ids from the opt-in table above.
+- **`disabled`** — ids to switch off, for anything on by default.
+- **`debug`** — `true` logs every decision to the console. A working install
+  prints `[gsk] ready, N bindings, M accounts` on load, which is the quickest
+  way to tell whether a reload actually took.
 
 ## Worth knowing
 
-- **Gmail already has this for tabs.** `` ` `` and `~` cycle inbox tabs natively
-  (Settings → General → Keyboard shortcuts on). This extension exists to put the
-  action on `Tab`, matching Superhuman's muscle memory.
+- **Done is Gmail's archive.** Superhuman's Mark Done and Gmail's archive are
+  the same operation — both drop the `INBOX` label, nothing moves. There is no
+  separate Done folder, so `g` `e` is a saved search (`in:archive`) rather than
+  a route, and Mark Not Done re-adds the label through Gmail's Move to Inbox
+  control.
+
+- **Actions follow your mouse, not a checkbox.** Gmail acts on *checked*
+  conversations and ignores both the mouse and the keyboard cursor, which is why
+  its shortcuts feel dead next to Superhuman's. The bindings that act on a
+  conversation tick a box first: an existing selection is left alone, otherwise
+  the row under the mouse, otherwise the row under the cursor, otherwise nothing
+  happens. A deliberate multi-select is never redirected at whatever the mouse
+  happens to be over.
+
+- **Gmail already has inbox tabs on a key.** `` ` `` and `~` cycle them
+  natively. This extension exists to put the action on `Tab`, matching
+  Superhuman's muscle memory.
+
+- **`Tab` no longer moves focus** in the main Gmail view. It still does inside
+  compose, search, dialogs, and any text field — that is what `shouldIgnore`
+  in `core.js` protects.
+
+- **Both chord machines run at once.** Pressing `g` is never swallowed, so
+  Gmail arms its own chord alongside ours. That only works because every leaf
+  claimed here (`e`, `m`, `h`, `!`, `#`) is one Gmail leaves free. Check that
+  before adding another.
+
+- **Modifiers arrive as their own keydown.** Typing `!` is a `Shift` keydown
+  then a `!` keydown, so the chord machine has to sit still for modifiers or
+  every chord ending in shifted punctuation dies before its leaf arrives.
+
+- **Synthesized keystrokes carry the shifted character.** A real keyboard
+  reports Shift+A as `A`, and Gmail reads `e.key`, so sending `a` with
+  `shiftKey` set is a keystroke Gmail ignores. Letters are uppercased under
+  shift; punctuation like `:` already encodes it.
+
 - **Tab switching activates Gmail's real tab**, rather than routing to a
   `#category/...` URL. The tabs are Closure controls (`DIV[role=tab]` with
-  `J-KU-*` state classes, no `jsaction`, no anchor), and Closure activates on
-  mousedown — a bare `el.click()` does nothing at all. `core.activate` therefore
-  dispatches `mousedown` -> `mouseup` -> `click`. `diag/inspect-tabs.js` is the
-  script that established this and is worth re-running if Gmail ever changes. Gmail switches in place, so the view stays mounted and
-  the query is not re-run. Whether the URL changes is then Gmail's own
-  behaviour, not something the extension imposes. Routing is kept only as a
-  fallback for views where the tab bar is not on screen (reading a thread, or
-  in Sent), since there is nothing to click there.
+  `J-KU-*` state classes, no `jsaction`, no anchor) and Closure activates on
+  mousedown, so a bare `el.click()` does nothing at all. `core.activate`
+  therefore dispatches `mousedown` → `mouseup` → `click`. Gmail switches in
+  place, so the view stays mounted and the query is not re-run. Routing is kept
+  only as a fallback for views where the tab bar is not on screen.
+
 - **Account switching is a full page load**, so expect a beat while Gmail
   reloads. Superhuman's native app keeps accounts warm in memory; a Gmail
   extension structurally cannot.
-- **`Tab` no longer moves focus** in the main Gmail view. It still does inside
-  compose, search, dialogs, and any text field — that is what `shouldIgnore`
-  in `core.js` protects. If you rely on Tab for focus traversal in the thread
-  list, this is the trade.
+
+- **`Shift+Enter` does nothing from the list.** Gmail's `Shift+a` needs an open
+  conversation, and making it work from the list would mean opening a
+  conversation in order to reply to it.
 
 ## Tests
 
@@ -74,9 +173,15 @@ Not needed to install — Chrome ignores `test/` and `diag/`.
 node --test test/core.test.js
 ```
 
-`core.js` holds the pure logic (URL building, which tab is active, where to
-cycle to, whether a keypress is ours) and is fully covered. `content.js` is
-thin wiring over it and is verified by hand in Gmail.
+`core.js` holds the pure logic — which binding a keypress matches, how the chord
+machine steps, what to synthesize, what an action should act on — and is fully
+covered. `content.js` is wiring over it and is verified by hand in Gmail.
+
+`diag/` holds the scripts that established how Gmail behaves, each carrying its
+measured result in a header comment. `inspect-tabs.js` worked out how the inbox
+tabs activate; `inspect-keys.js` worked out that Gmail acts on synthetic
+keystrokes, reads `e.key`, and does not check `isTrusted`. Re-run them if Gmail
+ever changes underneath this.
 
 ## License
 
