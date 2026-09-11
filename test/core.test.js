@@ -483,3 +483,23 @@ test('pickTarget tolerates an empty argument', () => {
   assert.strictEqual(core.pickTarget({}).row, null);
   assert.strictEqual(core.pickTarget().row, null);
 });
+
+// --- expand / collapse toggle ----------------------------------------------
+// Superhuman's Shift+O expands all; making it toggle is more useful, since
+// Gmail gives us both directions (; expands, : collapses) and a reliable read
+// of the current state. Measured: a thread with collapsed messages shows .kv,
+// .kQ or the folded .adx stack, and a fully expanded one shows none of them.
+
+test('expandToggleSpec expands when something is collapsed', () => {
+  assert.deepStrictEqual(core.expandToggleSpec(true), { key: ';' });
+});
+
+test('expandToggleSpec collapses when everything is already expanded', () => {
+  assert.deepStrictEqual(core.expandToggleSpec(false), { key: ':', shift: true });
+});
+
+test('expandToggleSpec survives synthKey without being re-cased', () => {
+  // ':' is Shift+; on a real keyboard, so the character already encodes it
+  assert.strictEqual(core.synthKey(core.expandToggleSpec(false)), ':');
+  assert.strictEqual(core.synthKey(core.expandToggleSpec(true)), ';');
+});

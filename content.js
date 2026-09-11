@@ -195,6 +195,16 @@
     // returning true here means "this keystroke was ours", not "the clipboard
     // is written". The write needs the document focused and can be refused.
     key: (arg) => sendKey(arg),
+    // Expand everything, or collapse it if nothing is left to expand. Gmail
+    // marks a collapsed message with .kv or .kQ, and folds the middle of a long
+    // thread into a .adx stack; measured against live threads, all three are
+    // absent once a conversation is fully expanded.
+    expandToggle: () => {
+      const visible = (sel) => [...document.querySelectorAll(sel)]
+        .some((el) => el.offsetParent !== null);
+      const hasCollapsed = visible('.kv') || visible('.kQ') || visible('.adx');
+      return sendKey(core.expandToggleSpec(hasCollapsed));
+    },
     click: (arg) => clickControl(arg),
     // Superhuman's u toggles read state, so which Gmail shortcut to fire
     // depends on where the conversation currently is. Gmail acts on checked

@@ -199,6 +199,16 @@ function readToggleSpec(isUnread) {
   return isUnread ? { key: 'i', shift: true } : { key: 'u', shift: true };
 }
 
+// Superhuman's Shift+O expands all. Gmail offers both directions -- ; expands
+// the conversation, : collapses it -- and the current state is legible, so this
+// toggles instead, which is the more useful key.
+//
+// ':' is Shift+; on a real keyboard, so the character carries the shift and
+// synthKey leaves it alone.
+function expandToggleSpec(hasCollapsed) {
+  return hasCollapsed ? { key: ';' } : { key: ':', shift: true };
+}
+
 // Which conversation an action should act on, and whether we have to tick its
 // box to make Gmail agree.
 //
@@ -286,6 +296,7 @@ const core = {
   isUnreadRow,
   readToggleSpec,
   pickTarget,
+  expandToggleSpec,
   activeBindings,
   accountBindings,
 };

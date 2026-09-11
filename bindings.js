@@ -89,8 +89,11 @@ globalThis.GSK_BINDINGS = [
   // per-message expand with an expand-all, which is strictly worse than leaving
   // Gmail alone. The earlier draft did exactly that.
   //
-  // Shift+O is unbound in Gmail, so expand-all is additive and worth having.
-  { id: 'expandAll', key: 'o', shift: true, requiresThread: true, action: 'key', arg: { key: ';' } },
+  // Shift+O is unbound in Gmail, so this is additive. It toggles rather than
+  // only expanding: Gmail gives both directions and the state is legible, so
+  // expand-then-collapse on one key beats a second key that does nothing once
+  // the thread is open.
+  { id: 'expandAll', key: 'o', shift: true, requiresThread: true, action: 'expandToggle' },
 
   // Pass-through bindings: same key in, same key out. Superhuman and Gmail agree
   // on all six of these, so the key never changes -- what changes is what they
