@@ -2,12 +2,13 @@
 // actions in content.js. Adding a shortcut means adding a row here.
 //
 // action names: 'account' | 'cycleTab' | 'nav' | 'key' | 'click' | 'copyLink'
+//               | 'readToggle' | 'expandToggle'
 // optIn: true means the binding costs a Gmail native and stays off until
 // config.enabled names its id.
 //
 // requiresThread: true means the binding only means something inside an open
 // conversation; in the list the key is handed back to Gmail. That is how Enter
-// and o keep Gmail's meaning where Superhuman's would be wrong.
+// and Shift+O keep Gmail's meaning where Superhuman's would be wrong.
 //
 // needsTarget: true means the binding acts on a conversation. Gmail acts on
 // checked conversations and ignores the mouse and the keyboard cursor, so
@@ -50,11 +51,10 @@ globalThis.GSK_BINDINGS = [
   // also the leaf of the g+h chord; a chord binding only resolves under its
   // prefix, so the two never shadow each other.
   //
-  // Both act on the conversation under Gmail's cursor, and Gmail has no cursor
-  // until you press j/k or click -- hovering does not set one. Superhuman always
-  // has a focused conversation, so these feel like they should work straight off
-  // the list and do not. That is Gmail's model, not something the binding can
-  // fix: auto-selecting a row would risk acting on the wrong conversation.
+  // Both act on a conversation, so both carry needsTarget: Gmail's own b and m
+  // read the checkbox and ignore the mouse, and Gmail sets no cursor until you
+  // press j/k or click. Without it these fire into nothing off the list, which
+  // is the gap needsTarget exists to close.
   { id: 'snooze', key: 'h', needsTarget: true, action: 'key', arg: { key: 'b' } },
   { id: 'mute', key: 'm', shift: true, needsTarget: true, action: 'key', arg: { key: 'm' } },
 
