@@ -4,9 +4,10 @@ Superhuman's keyboard shortcuts, added to Gmail.
 
 ![Cycling inbox tabs with Tab, then selecting and deleting with Gmail's own x and # shortcuts, with an onscreen keyboard showing the keypresses](demo.gif)
 
-No OAuth, no Gmail API, no network calls. Every shortcut either changes the URL,
-fires one of Gmail's own keystrokes, or clicks a control Gmail already renders.
-Nothing touches your mail that Gmail could not already do.
+No OAuth, no Gmail API, no network calls. Every shortcut changes the URL, fires
+one of Gmail's own keystrokes, or clicks a control Gmail already renders; `Ctrl+/`
+copies the address you are already on. Nothing touches your mail that Gmail could
+not already do.
 
 ## Shortcuts
 
@@ -44,7 +45,7 @@ Off until you ask for them, because each takes a Gmail shortcut away:
 | `Shift+S` | Filter to starred | nothing | `filterStarred` |
 | `Shift+I` | Filter to important | Gmail's mark-as-read | `filterImportant` |
 | `u` | Toggle read / unread | Gmail's back-to-list | `readToggle` |
-| `Escape` | Back to the list | Gmail's focus-compose | `backToList` |
+| `Escape` | Back to the list | nothing | `backToList` |
 
 Turn them on by id in `config.js`:
 
@@ -53,8 +54,10 @@ enabled: ['filterStarred', 'readToggle', 'backToList'],
 ```
 
 `readToggle` and `backToList` are a pair — the first takes `u`, the second gives
-its old job to `Escape`. Enabling `filterImportant` without `readToggle` leaves
-no way to mark a conversation read at all.
+its old job to `Escape`, which costs nothing: Gmail's only `Escape` leaves a text
+field, and `shouldIgnore` hands the key back in every field and dialog anyway.
+Enable `filterUnread` and `filterImportant` together and both of Gmail's
+read-state keys are gone; `readToggle` puts both directions back on one key.
 
 ### Already the same
 
@@ -97,7 +100,9 @@ have anything to cycle, and Gmail's keyboard shortcuts turned on
 
 Everything lives in `config.js`:
 
-- **`accounts`** — your addresses in the order you want them on `Ctrl+1..9`.
+- **`accounts`** — the addresses you are signed into in this Chrome profile, in
+  the order you want them on `Ctrl+1..9`. List three and only `Ctrl+1..3` bind;
+  the rest keep whatever Chrome does with them.
   These are resolved with Gmail's `?authuser=` parameter rather than the
   `/u/0/`, `/u/1/` indices, because those indices are assigned in sign-in order
   and renumber if you sign out — which would quietly point `Ctrl+2` at the
@@ -140,6 +145,11 @@ Everything lives in `config.js`:
   claimed here (`e`, `m`, `h`, `!`, `#`) is one Gmail leaves free. Check that
   before adding another.
 
+- **A `g` stays armed for 1.5 seconds.** Long enough to type the chord
+  deliberately, short enough that a stray `g` does not swallow the next
+  keystroke. Any second key the table does not claim ends the chord and falls
+  through, which is how Gmail's own `g` `i` and friends still land.
+
 - **Modifiers arrive as their own keydown.** Typing `!` is a `Shift` keydown
   then a `!` keydown, so the chord machine has to sit still for modifiers or
   every chord ending in shifted punctuation dies before its leaf arrives.
@@ -165,23 +175,55 @@ Everything lives in `config.js`:
   conversation, and making it work from the list would mean opening a
   conversation in order to reply to it.
 
+## Adding a shortcut
+
+Add a row to `bindings.js`. It is the whole extension point: the table is data,
+and the four files load in the order `manifest.json` names them.
+
+```js
+{ id: 'goDone', key: 'e', chord: 'g', action: 'nav', arg: '#search/in%3Aarchive' },
+```
+
+A row carries the key and the modifiers it demands (`shift`, `ctrl`, `meta`,
+`alt`, each defaulting to "must be absent", or `'any'` for shifted punctuation
+that already encodes itself), an optional `chord` prefix, and an action name.
+The actions are `account`, `cycleTab`, `nav`, `key`, `click`, `copyLink`,
+`readToggle` and `expandToggle`, and they live in `content.js`. Three flags do
+the rest of the work:
+
+- **`optIn`** — the row costs a Gmail native, so it stays off until `config.enabled`
+  names its id. Say what it costs in the comment above it.
+- **`needsTarget`** — the row acts on a conversation, so `content.js` ticks a box
+  first. Without it the key quietly does nothing.
+- **`requiresThread`** — the row only means something inside an open conversation,
+  so in the list the key goes back to Gmail. That is how `Enter` and `Shift+O`
+  keep Gmail's meaning where Superhuman's would be wrong.
+
+`core.js` decides which binding a keypress matches and stays pure: no DOM, no
+navigation, no globals. `content.js` is the wiring that touches the page.
+
 ## Tests
 
-Not needed to install — Chrome ignores `test/` and `diag/`.
+Not needed to install: Chrome loads only the four files `manifest.json` names,
+so `test/`, `diag/` and `docs/` never reach the browser.
 
 ```sh
 node --test test/core.test.js
 ```
 
-`core.js` holds the pure logic — which binding a keypress matches, how the chord
-machine steps, what to synthesize, what an action should act on — and is fully
-covered. `content.js` is wiring over it and is verified by hand in Gmail.
+80 cases cover `core.js` — which binding a keypress matches, how the chord
+machine steps, what to synthesize, what an action should act on — hitting every
+exported function and all but one line. `content.js` is wiring over it and is
+verified by hand in Gmail.
 
 `diag/` holds the scripts that established how Gmail behaves, each carrying its
 measured result in a header comment. `inspect-tabs.js` worked out how the inbox
 tabs activate; `inspect-keys.js` worked out that Gmail acts on synthetic
 keystrokes, reads `e.key`, and does not check `isTrusted`. Re-run them if Gmail
 ever changes underneath this.
+
+`docs/superpowers/plans/` holds the parity plan the current shortcut set was
+built from, with the measured Gmail behaviour behind each binding.
 
 ## License
 
