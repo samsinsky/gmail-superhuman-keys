@@ -225,6 +225,13 @@ ever changes underneath this.
 `docs/superpowers/plans/` holds the parity plan the current shortcut set was
 built from, with the measured Gmail behaviour behind each binding.
 
+## Not affiliated
+
+Superhuman Labs and Google neither endorse nor sponsor this extension, and
+neither has any connection to it. Superhuman and Gmail are their respective
+trademarks, used here only to say what this works with. Every shortcut maps onto
+a command Gmail already ships; none of Superhuman's code appears anywhere in it.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
