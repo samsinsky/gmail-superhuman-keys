@@ -2,13 +2,16 @@
 // actions in content.js. Adding a shortcut means adding a row here.
 //
 // action names: 'account' | 'cycleTab' | 'nav' | 'key' | 'click' | 'copyLink'
-//               | 'readToggle' | 'expandToggle'
+//               | 'readToggle' | 'expandToggle' | 'selectToggle'
+//               | 'extendSelection' | 'clickLast'
 // optIn: true means the binding costs a Gmail native and stays off until
 // config.enabled names its id.
 //
 // requiresThread: true means the binding only means something inside an open
 // conversation; in the list the key is handed back to Gmail. That is how Enter
 // and Shift+O keep Gmail's meaning where Superhuman's would be wrong.
+// requiresList is the inverse: inside an open conversation the key is handed
+// back.
 //
 // needsTarget: true means the binding acts on a conversation. Gmail acts on
 // checked conversations and ignores the mouse and the keyboard cursor, so
@@ -120,6 +123,38 @@ globalThis.GSK_BINDINGS = [
   // where there is nothing to un-archive. Shift+E is unbound in Gmail, so
   // falling through costs nothing.
   { id: 'markNotDone', key: 'e', shift: true, needsTarget: true, action: 'click', arg: '[aria-label="Move to Inbox"]' },
+
+  // Superhuman's Cmd+A selects every conversation in the list, and pressing it
+  // again clears the selection. Gmail has both halves on chords -- * a and * n --
+  // so this picks one from the state of Gmail's select-all checkbox.
+  // requiresList hands Cmd+A back to the browser inside an open conversation,
+  // where selecting the message text is what you want. Cmd+A is unbound in
+  // Gmail, and shouldIgnore already leaves it alone in the search box and
+  // compose, so this costs nothing.
+  { id: 'selectAll', key: 'a', meta: true, requiresList: true, action: 'selectToggle' },
+
+  // Superhuman moves between conversations on the arrows. Gmail's j and k do
+  // the same, and Gmail's arrows only scroll the list, so these are opt-in:
+  // taking them costs arrow scrolling in the list. requiresList keeps them
+  // scrolling the message inside an open conversation.
+  { id: 'nextConversation', key: 'ArrowDown', optIn: true, requiresList: true, action: 'key', arg: { key: 'j' } },
+  { id: 'prevConversation', key: 'ArrowUp', optIn: true, requiresList: true, action: 'key', arg: { key: 'k' } },
+
+  // Superhuman's Shift+arrows move a cursor away from a fixed anchor, the
+  // selection being the range between them, so the same key grows one way and
+  // shrinks the other. Gmail has no key for that at all: content.js holds the
+  // anchor and ticks the boxes. Shift+arrow is unbound in Gmail's list, so this
+  // is additive.
+  { id: 'extendDown', key: 'ArrowDown', shift: true, requiresList: true, action: 'extendSelection', arg: 1 },
+  { id: 'extendUp', key: 'ArrowUp', shift: true, requiresList: true, action: 'extendSelection', arg: -1 },
+
+  // Superhuman's Cmd+U unsubscribes. Gmail renders an Unsubscribe link beside
+  // the sender of a bulk message -- span.Ca[role=link] inside the message,
+  // measured 2026-09-18 -- and clicking it opens Gmail's own confirmation, so
+  // nothing is unsubscribed without a second, deliberate click. The last match
+  // is the newest expanded message. Absent on ordinary mail, where the key
+  // falls through.
+  { id: 'unsubscribe', key: 'u', meta: true, requiresThread: true, action: 'clickLast', arg: '.adn span.Ca[role="link"]' },
 
   // Gmail already puts the conversation permalink in the URL, so there is
   // nothing to look up. Ctrl+/ is unbound in both Gmail and Chrome.

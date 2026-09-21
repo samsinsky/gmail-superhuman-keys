@@ -503,3 +503,96 @@ test('expandToggleSpec survives synthKey without being re-cased', () => {
   assert.strictEqual(core.synthKey(core.expandToggleSpec(false)), ':');
   assert.strictEqual(core.synthKey(core.expandToggleSpec(true)), ';');
 });
+
+// --- the shipped table -------------------------------------------------------
+// Cmd+A, the arrows and Cmd+U are tested against bindings.js itself rather than
+// a fixture: what matters is which key each one actually claims.
+
+require('../bindings.js');
+const SELECT_ALL = globalThis.GSK_BINDINGS.find((b) => b.id === 'selectAll');
+
+test('Cmd+A matches selectAll', () => {
+  assert.strictEqual(core.matchBinding(key('a', { meta: true }), [SELECT_ALL]).id, 'selectAll');
+});
+
+test('selectAll leaves plain a and Ctrl+A alone', () => {
+  assert.strictEqual(core.matchBinding(key('a'), [SELECT_ALL]), null);
+  assert.strictEqual(core.matchBinding(key('a', { ctrl: true }), [SELECT_ALL]), null);
+});
+
+test('selectAllSpecs selects all from an empty or partial selection', () => {
+  for (const state of ['false', 'mixed', null]) {
+    assert.deepStrictEqual(core.selectAllSpecs(state).map(core.synthKey), ['*', 'a']);
+  }
+});
+
+test('selectAllSpecs clears a full selection', () => {
+  assert.deepStrictEqual(core.selectAllSpecs('true').map(core.synthKey), ['*', 'n']);
+});
+
+const byId = (id) => globalThis.GSK_BINDINGS.find((b) => b.id === id);
+
+test('the arrows move between conversations, but only once opted into', () => {
+  const table = globalThis.GSK_BINDINGS;
+  assert.strictEqual(core.matchBinding(key('ArrowDown'), core.activeBindings(table)), null);
+  const on = core.activeBindings(table, { enabled: ['nextConversation', 'prevConversation'] });
+  assert.strictEqual(core.matchBinding(key('ArrowDown'), on).id, 'nextConversation');
+  assert.strictEqual(core.matchBinding(key('ArrowUp'), on).id, 'prevConversation');
+});
+
+test('Shift+arrows extend the selection and are on by default', () => {
+  const on = core.activeBindings(globalThis.GSK_BINDINGS);
+  assert.strictEqual(core.matchBinding(key('ArrowDown', { shift: true }), on).id, 'extendDown');
+  assert.strictEqual(core.matchBinding(key('ArrowUp', { shift: true }), on).id, 'extendUp');
+});
+
+test('Cmd+U unsubscribes and leaves plain u to Gmail', () => {
+  const unsubscribe = byId('unsubscribe');
+  assert.strictEqual(core.matchBinding(key('u', { meta: true }), [unsubscribe]).id, 'unsubscribe');
+  assert.strictEqual(core.matchBinding(key('u'), [unsubscribe]), null);
+});
+
+// The range Shift+arrow walks. `r(anchor, cursor)` reads as "anchored at A,
+// cursor at C", and from/to is the selection that implies.
+const r = (anchor, cursor) => ({ anchor, cursor, from: Math.min(anchor, cursor), to: Math.max(anchor, cursor) });
+
+test('extendRange grows away from the anchor', () => {
+  assert.deepStrictEqual(core.extendRange(50, 5, 5, 1), r(5, 6));
+  assert.deepStrictEqual(core.extendRange(50, 5, 6, 1), r(5, 7));
+});
+
+test('extendRange shrinks when the arrow reverses, giving back the row it leaves', () => {
+  assert.deepStrictEqual(core.extendRange(50, 5, 8, -1), r(5, 7));
+});
+
+test('extendRange passes through the anchor and grows the other way', () => {
+  assert.deepStrictEqual(core.extendRange(50, 5, 6, -1), r(5, 5));
+  assert.deepStrictEqual(core.extendRange(50, 5, 5, -1), r(5, 4));
+});
+
+test('extendRange selects one row, not two, on the first press from nowhere', () => {
+  assert.deepStrictEqual(core.extendRange(50, -1, -1, 1), r(0, 0));
+  assert.deepStrictEqual(core.extendRange(50, -1, -1, -1), r(49, 49));
+});
+
+test('extendRange moves on the second press, once that first row is the anchor', () => {
+  assert.deepStrictEqual(core.extendRange(50, 0, 0, 1), r(0, 1));
+  assert.deepStrictEqual(core.extendRange(50, 49, 49, -1), r(49, 48));
+});
+
+test('extendRange still moves on a first press that has a row under the cursor', () => {
+  assert.deepStrictEqual(core.extendRange(50, 5, -1, 1), r(5, 6));
+});
+
+test('extendRange stops at the ends of the list rather than wrapping', () => {
+  assert.deepStrictEqual(core.extendRange(50, 40, 49, 1), r(40, 49));
+  assert.deepStrictEqual(core.extendRange(50, 10, 0, -1), r(10, 0));
+});
+
+test('extendRange treats a cursor of -1 as sitting on the anchor', () => {
+  assert.deepStrictEqual(core.extendRange(50, 7, -1, 1), r(7, 8));
+});
+
+test('extendRange refuses an empty list rather than inventing a row', () => {
+  assert.strictEqual(core.extendRange(0, -1, -1, 1), null);
+});

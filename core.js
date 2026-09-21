@@ -183,6 +183,16 @@ function synthKey(spec) {
   return key;
 }
 
+// Superhuman's Cmd+A toggles: select everything, or clear it if everything is
+// already selected. Gmail's select-all checkbox reports aria-checked 'true',
+// 'mixed' or 'false' -- measured 2026-09-18, and it updates synchronously as
+// rows are ticked -- so only a full selection clears. A partial one is
+// completed, which is what a second press of select-all means in every list UI.
+function selectAllSpecs(checkboxState) {
+  const leaf = checkboxState === 'true' ? 'n' : 'a';
+  return [{ key: '*', shift: true }, { key: leaf }];
+}
+
 // Gmail marks an unread row tr.zA.zE and a read one tr.zA.yO. Measured against
 // the live thread list: the two classes partition every row, so the marker is
 // a reliable read of the current state rather than a guess.
@@ -207,6 +217,39 @@ function readToggleSpec(isUnread) {
 // synthKey leaves it alone.
 function expandToggleSpec(hasCollapsed) {
   return hasCollapsed ? { key: ';' } : { key: ':', shift: true };
+}
+
+// Superhuman's Shift+arrows move a cursor away from a fixed anchor, and the
+// selection is always the range between the two. That is what makes the key
+// shrink as well as grow: reversing walks the cursor back toward the anchor and
+// gives up the rows it leaves, exactly as shift-clicking a list does everywhere
+// else. Growing only, which this did at first, means recovering from one
+// overshoot by hand.
+//
+// `anchor` and `cursor` are -1 when no range is running -- a freshly loaded
+// list, or one whose selection was changed outside these keys. From nowhere the
+// first press lands on the end the arrow points away from and selects that row
+// alone, without moving: there is no row you are "on" yet, so the press has to
+// establish one. It used to move as well, which selected two rows at once and
+// read as a bug.
+//
+// With a row already under the cursor, the press does move, so Shift+down from
+// row 5 selects 5 and 6. The difference is whether the anchor already exists.
+//
+// The cursor stops at the ends of the list rather than wrapping: wrapping would
+// swing a selection from the top of the list to the bottom on one keypress.
+function extendRange(count, anchor, cursor, dir) {
+  if (!count) return null;
+  const fresh = anchor === -1;
+  const start = fresh ? (dir > 0 ? 0 : count - 1) : anchor;
+  const at = cursor === -1 ? start : cursor;
+  const next = fresh ? start : Math.min(Math.max(at + dir, 0), count - 1);
+  return {
+    anchor: start,
+    cursor: next,
+    from: Math.min(start, next),
+    to: Math.max(start, next),
+  };
 }
 
 // Which conversation an action should act on, and whether we have to tick its
@@ -292,6 +335,8 @@ const core = {
   isModifierKey,
   resolveKey,
   synthKey,
+  selectAllSpecs,
+  extendRange,
   UNREAD_ROW_CLASS,
   isUnreadRow,
   readToggleSpec,

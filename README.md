@@ -35,6 +35,9 @@ On by default:
 | `Shift+Enter` | Pop out reply all | `popReplyAll` |
 | `Shift+C` | Pop out compose | `popCompose` |
 | `Shift+O` | Expand / collapse conversation | `expandAll` |
+| `Cmd+A` | Select all conversations in the list, or none if all are selected | `selectAll` |
+| `Shift+↓` / `Shift+↑` | Grow or shrink the selection down / up | `extendDown`, `extendUp` |
+| `Cmd+U` | Unsubscribe (opens Gmail's confirmation) | `unsubscribe` |
 | `Ctrl+/` | Copy link to conversation | `copyLink` |
 
 Off until you ask for them, because each takes a Gmail shortcut away:
@@ -46,6 +49,7 @@ Off until you ask for them, because each takes a Gmail shortcut away:
 | `Shift+I` | Filter to important | Gmail's mark-as-read | `filterImportant` |
 | `u` | Toggle read / unread | Gmail's back-to-list | `readToggle` |
 | `Escape` | Back to the list | nothing | `backToList` |
+| `↓` / `↑` | Next / previous conversation | arrow scrolling in the list | `nextConversation`, `prevConversation` |
 
 Turn them on by id in `config.js`:
 
@@ -75,7 +79,7 @@ and Label.
 its own. The calendar keys (`0`, `-`, `=`) and snippets (`Cmd+;`) would need the
 same. Superhuman's `Shift+R` no-reply filter is computed server-side and no Gmail
 search operator expresses it. The compose-window shortcuts
-(`Cmd+Shift+O/S/M/A/,/I/H/L`, `Cmd+U` unsubscribe, `Cmd+Shift+Enter` send and
+(`Cmd+Shift+O/S/M/A/,/I/H/L`, `Cmd+Shift+Enter` send and
 done) are not here yet: `shouldIgnore` exempts compose entirely, and inverting
 that guard is its own piece of work.
 

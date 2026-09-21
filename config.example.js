@@ -28,7 +28,9 @@ globalThis.GSK_CONFIG = {
   //   enabled: ['filterUnread', 'filterStarred', 'filterImportant'],
   //
   // Note that filterUnread and filterImportant take over Shift+U and Shift+I,
-  // which are Gmail's mark-as-unread and mark-as-read.
+  // which are Gmail's mark-as-unread and mark-as-read, and that
+  // nextConversation and prevConversation take the arrows, which Gmail
+  // otherwise uses to scroll the list.
   enabled: [],
 
   // Turn off anything shipped on by default, by id.
