@@ -3,7 +3,7 @@
 //
 // action names: 'account' | 'cycleTab' | 'nav' | 'key' | 'click' | 'copyLink'
 //               | 'readToggle' | 'expandToggle' | 'selectToggle'
-//               | 'extendSelection' | 'clickLast'
+//               | 'extendSelection' | 'clickText'
 // optIn: true means the binding costs a Gmail native and stays off until
 // config.enabled names its id.
 //
@@ -148,13 +148,14 @@ globalThis.GSK_BINDINGS = [
   { id: 'extendDown', key: 'ArrowDown', shift: true, requiresList: true, action: 'extendSelection', arg: 1 },
   { id: 'extendUp', key: 'ArrowUp', shift: true, requiresList: true, action: 'extendSelection', arg: -1 },
 
-  // Superhuman's Cmd+U unsubscribes. Gmail renders an Unsubscribe link beside
-  // the sender of a bulk message -- span.Ca[role=link] inside the message,
-  // measured 2026-09-18 -- and clicking it opens Gmail's own confirmation, so
-  // nothing is unsubscribed without a second, deliberate click. The last match
-  // is the newest expanded message. Absent on ordinary mail, where the key
-  // falls through.
-  { id: 'unsubscribe', key: 'u', meta: true, requiresThread: true, action: 'clickLast', arg: '.adn span.Ca[role="link"]' },
+  // Superhuman's Cmd+U unsubscribes. Gmail renders an Unsubscribe control
+  // beside the sender of a bulk message, and clicking it opens Gmail's own
+  // confirmation, so nothing is unsubscribed without a second, deliberate
+  // click. Found by its words rather than its class: Gmail's class names differ
+  // between accounts and move with each rollout, and the first version of this
+  // keyed on one (span.Ca) and found nothing. Absent on ordinary mail, where
+  // the key falls through.
+  { id: 'unsubscribe', key: 'u', meta: true, requiresThread: true, action: 'clickText', arg: { within: '.adn', text: 'Unsubscribe' } },
 
   // Gmail already puts the conversation permalink in the URL, so there is
   // nothing to look up. Ctrl+/ is unbound in both Gmail and Chrome.

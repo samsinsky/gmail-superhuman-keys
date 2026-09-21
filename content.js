@@ -217,12 +217,24 @@
       return sendKey(core.expandToggleSpec(hasCollapsed));
     },
     click: (arg) => clickControl(arg),
-    // Like click, but on the last match on screen: a thread repeats the control
-    // once per expanded message, and the newest message is the one you mean.
-    clickLast: (arg) => {
-      const el = [...document.querySelectorAll(arg)].filter(onScreen).pop();
-      if (!el) { log('control not present:', arg); return false; }
-      log('activate control ->', arg);
+    // Click a control by the words on it, within some part of the page: for
+    // Unsubscribe, which Gmail renders as a bare span carrying a role and an
+    // obfuscated class. Keying on the class is what the first version did, and
+    // those names differ between accounts and change with every rollout, so a
+    // control that is plainly on screen goes unfound. The visible text is the
+    // stable part.
+    //
+    // English-only, as the whole extension is. The last match on screen wins: a
+    // thread repeats the control once per expanded message and the newest is
+    // the one you mean.
+    clickText: (arg) => {
+      const scope = [...document.querySelectorAll(arg.within)].filter(onScreen);
+      const hits = scope
+        .flatMap((el) => [...el.querySelectorAll('[role="link"], [role="button"], a, button')])
+        .filter((el) => onScreen(el) && core.saysExactly(el.textContent, arg.text));
+      const el = hits.pop();
+      if (!el) { log('no control saying', arg.text, 'in', arg.within); return false; }
+      log('activate control ->', arg.text);
       return core.activate(el, (type) => new MouseEvent(type, {
         bubbles: true, cancelable: true, view: window, button: 0,
       }));

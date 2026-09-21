@@ -226,6 +226,14 @@ function expandToggleSpec(hasCollapsed) {
 // else. Growing only, which this did at first, means recovering from one
 // overshoot by hand.
 //
+// Does a control say exactly this word? Gmail wraps the label in whatever
+// markup it likes and pads it with whitespace, and a control that merely
+// contains the word -- a whole message body containing "unsubscribe", say -- is
+// not the control. Compared case-insensitively and trimmed, nothing cleverer.
+function saysExactly(text, want) {
+  return String(text || '').trim().toLowerCase() === String(want || '').trim().toLowerCase();
+}
+
 // Superhuman's Shift+arrows select or deselect the row you are on and move on,
 // so a held Shift walks the list picking rows up, and walking back puts them
 // down again. The only decision left is which row that is when Gmail has no
@@ -328,6 +336,7 @@ const core = {
   synthKey,
   selectAllSpecs,
   rowToToggle,
+  saysExactly,
   UNREAD_ROW_CLASS,
   isUnreadRow,
   readToggleSpec,

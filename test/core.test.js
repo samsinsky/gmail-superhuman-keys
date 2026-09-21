@@ -568,3 +568,12 @@ test('rowToToggle refuses an empty list rather than inventing a row', () => {
   assert.strictEqual(core.rowToToggle(0, -1, 1), -1);
 });
 
+test('saysExactly matches a control by its words, whatever the markup did to them', () => {
+  assert.ok(core.saysExactly('  Unsubscribe\n', 'Unsubscribe'));
+  assert.ok(core.saysExactly('UNSUBSCRIBE', 'unsubscribe'));
+});
+
+test('saysExactly refuses a control that merely contains the word', () => {
+  assert.ok(!core.saysExactly('To unsubscribe, click here', 'Unsubscribe'));
+  assert.ok(!core.saysExactly('', 'Unsubscribe'));
+});
