@@ -125,89 +125,6 @@
   // backgrounded tab, where widths all read zero.
   const onScreen = (el) => !!el && el.offsetParent !== null;
 
-  // The range Shift+arrow is currently walking: the row it is anchored to, the
-  // row the cursor has reached, and every row it selected on the way. Held
-  // between keypresses, which is what lets a reversal know which rows are its
-  // own to give back.
-  let range = null;
-
-  // Is the stored range still the one on screen? The selection having changed
-  // under it is what ends it; a plain move is handled separately, by endRange
-  // below. Rebuilding is always safe; carrying on from a stale anchor is what
-  // would surprise.
-  //
-  // Deliberately no comparison against Gmail's cursor row. Two earlier versions
-  // did, and both broke the shrink: ticking a checkbox moves Gmail's cursor
-  // itself, and in a focused tab it lands after we have read it, so every press
-  // looked like the user had moved and re-anchored. Whether a real keypress or
-  // click happened is the thing we actually mean, and isTrusted answers it
-  // exactly.
-  // Each rejection logs its reason. Which of these fires is the whole diagnosis
-  // when the shrink stops working, and it cannot be measured from outside: a
-  // range that is rebuilt every press looks exactly like one that only grows.
-  function liveRange(rows, cursorRow) {
-    if (!range) return null;
-    if (!rows.includes(range.anchor) || !rows.includes(range.cursor)) {
-      log('range dropped: the list re-rendered under it');
-      return null;
-    }
-    // Plain moves are allowed to wander without ending the range, but only
-    // within it. Coming back to a row the range covers means carrying on from
-    // there; stepping off it means the anchor no longer describes where you
-    // are, so the next Shift+arrow starts again from the cursor.
-    if (cursorRow) {
-      const at = rows.indexOf(cursorRow);
-      const edges = [rows.indexOf(range.anchor), rows.indexOf(range.cursor)];
-      if (at < Math.min(...edges) || at > Math.max(...edges)) {
-        log('range dropped: the cursor moved outside it');
-        return null;
-      }
-    }
-    // Only this range's own rows have to still be ticked. Rows selected before
-    // it started are none of its business: a plain arrow between two Shift+arrow
-    // presses leaves the earlier selection standing, and demanding that the
-    // whole list match meant the range was thrown away on every press from then
-    // on -- shrinking worked while you selected straight through and stopped the
-    // moment you moved without shift. Measured against the live list.
-    const missing = range.rows.filter((row) => !row.classList.contains('x7'));
-    if (missing.length) {
-      log('range dropped:', missing.length, 'of its rows were unticked elsewhere');
-      return null;
-    }
-    return range;
-  }
-
-  // The keys that only move the cursor: Gmail's own j and k, and the arrows
-  // when they are bound to them. Unmodified only -- Shift+arrow is the range
-  // key itself, and a modifier makes it somebody else's shortcut.
-  const MOVE_KEYS = new Set(['j', 'k', 'arrowdown', 'arrowup']);
-
-  function isMoveKey(e) {
-    if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return false;
-    return MOVE_KEYS.has(core.normalizeKey(e.key));
-  }
-
-  // Any real keypress or click that is neither another Shift+arrow nor a plain
-  // move ends the range, so the next one anchors afresh. Our own synthesized
-  // events carry isTrusted false and are ignored here, which is what keeps
-  // ticking a box from ending the very range that ticked it.
-  function endRange() {
-    if (range) log('range ended');
-    range = null;
-  }
-
-  document.addEventListener('mousedown', (e) => {
-    if (e.isTrusted) endRange();
-  }, true);
-
-  // Where a new range starts: Gmail's cursor row, else the row under the mouse,
-  // else nowhere -- core.extendRange then starts from the end of the list the
-  // arrow points away from.
-  function startIndex(rows, cursorRow) {
-    const hovered = onScreen(hoveredRow) ? hoveredRow : null;
-    return rows.indexOf(cursorRow || hovered);
-  }
-
   // Fire one of Gmail's own shortcuts. Gmail reads e.key and does not check
   // isTrusted, so a plain KeyboardEvent at document.body is enough -- measured
   // 2026-09-09 for both a plain letter and shifted punctuation, with and
@@ -318,46 +235,29 @@
       const specs = core.selectAllSpecs(box && box.getAttribute('aria-checked'));
       return specs.every(sendKey);
     },
-    // Move the cursor one row from the anchor and make the selection the range
-    // between them, so the key grows or shrinks depending on which way it is
-    // pressed. `range` is what carries the anchor between keypresses; where a
-    // new one starts from, and when the old one is abandoned, is decided by
-    // liveRange below.
+    // Select or deselect the row the cursor is on, then move on, so holding
+    // Shift and walking the arrows picks rows up on the way out and puts them
+    // back on the way home. Gmail's checkbox is itself a toggle, so one click
+    // covers both directions and nothing here needs to know which it did.
     //
-    // Gmail's own cursor is nudged along with j and k when it has one, so it
-    // follows the selection down the list. Nothing depends on it keeping up:
-    // the range is ours, and Gmail acts on the ticked boxes rather than on the
-    // cursor anyway.
+    // No anchor, no remembered range: three earlier versions kept one and each
+    // broke differently once a plain move, a re-render or a hand-ticked box got
+    // between two presses. The row under the cursor is a fact on the page, and
+    // reading it fresh every press is what makes this hold up.
     extendSelection: (dir) => {
       const rows = [...document.querySelectorAll('tr.zA')].filter(onScreen);
       if (!rows.length) { log('no list to extend in'); return false; }
 
       const cursorRow = rows.find((row) => row.classList.contains('btb'));
-      const live = liveRange(rows, cursorRow);
-      const step = core.extendRange(
-        rows.length,
-        live ? rows.indexOf(live.anchor) : startIndex(rows, cursorRow),
-        // Where the moving edge is now. Plain j, k and arrows move Gmail's
-        // cursor without touching the selection, and coming back to the edge of
-        // the range should carry on from there rather than start again -- which
-        // is what makes Shift+up shrink after you have moved away and back.
-        live ? rows.indexOf(cursorRow || live.cursor) : -1,
-        dir
-      );
+      const hovered = onScreen(hoveredRow) ? hoveredRow : null;
+      const at = core.rowToToggle(rows.length, rows.indexOf(cursorRow || hovered), dir);
+      if (!tickRow(rows[at])) return false;
 
-      const selected = rows.slice(step.from, step.to + 1);
-      const keep = new Set(selected);
-      for (const row of selected) if (!row.classList.contains('x7')) tickRow(row);
-      // Untick only what this range put there. Rows ticked by hand or by an
-      // earlier, abandoned range are left alone: taking a selection away is
-      // worse than leaving one behind.
-      const dropped = live ? live.rows.filter((row) => !keep.has(row)) : [];
-      for (const row of dropped) if (row.classList.contains('x7')) tickRow(row);
-
-      if (cursorRow && step.cursor !== rows.indexOf(cursorRow)) {
-        sendKey({ key: dir > 0 ? 'j' : 'k' });
-      }
-      range = { anchor: rows[step.anchor], cursor: rows[step.cursor], rows: selected };
+      // Ticking a box moves Gmail's cursor onto that row, so this is the step
+      // from the row just taken to the next one. Nothing depends on the key
+      // landing: the selection is already made, and Gmail acts on ticked boxes
+      // rather than on the cursor.
+      sendKey({ key: dir > 0 ? 'j' : 'k' });
       return true;
     },
     // Superhuman's u toggles read state, so which Gmail shortcut to fire
@@ -432,16 +332,6 @@
 
     const { binding, pending: next } = core.resolveKey(e, bindings, pending);
     if (next !== pending) setPending(next);
-
-    // Anything but another Shift+arrow or a plain move ends the range. Moving
-    // the cursor is not an edit, and a wander that comes back inside the range
-    // should pick it up again -- liveRange is what decides that, from where the
-    // cursor ends up. Anything else (an archive, a label, a chord) is a real
-    // change of subject and the anchor goes with it. Held modifiers are not a
-    // move: Shift arrives as its own keydown before every one of these presses.
-    if (!core.isModifierKey(e) && !isMoveKey(e) && (!binding || binding.action !== 'extendSelection')) {
-      endRange();
-    }
 
     if (!binding) return;
 

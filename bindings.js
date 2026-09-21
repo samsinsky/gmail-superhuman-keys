@@ -140,11 +140,11 @@ globalThis.GSK_BINDINGS = [
   { id: 'nextConversation', key: 'ArrowDown', optIn: true, requiresList: true, action: 'key', arg: { key: 'j' } },
   { id: 'prevConversation', key: 'ArrowUp', optIn: true, requiresList: true, action: 'key', arg: { key: 'k' } },
 
-  // Superhuman's Shift+arrows move a cursor away from a fixed anchor, the
-  // selection being the range between them, so the same key grows one way and
-  // shrinks the other. Gmail has no key for that at all: content.js holds the
-  // anchor and ticks the boxes. Shift+arrow is unbound in Gmail's list, so this
-  // is additive.
+  // Superhuman's Shift+arrows select or deselect the row you are on and move on,
+  // so holding Shift and walking the arrows picks rows up going out and puts
+  // them back coming home. Gmail has no key for that at all: content.js ticks
+  // the box, which is itself a toggle. Shift+arrow is unbound in Gmail's list,
+  // so this is additive.
   { id: 'extendDown', key: 'ArrowDown', shift: true, requiresList: true, action: 'extendSelection', arg: 1 },
   { id: 'extendUp', key: 'ArrowUp', shift: true, requiresList: true, action: 'extendSelection', arg: -1 },
 

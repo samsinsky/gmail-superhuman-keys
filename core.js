@@ -226,30 +226,21 @@ function expandToggleSpec(hasCollapsed) {
 // else. Growing only, which this did at first, means recovering from one
 // overshoot by hand.
 //
-// `anchor` and `cursor` are -1 when no range is running -- a freshly loaded
-// list, or one whose selection was changed outside these keys. From nowhere the
-// first press lands on the end the arrow points away from and selects that row
-// alone, without moving: there is no row you are "on" yet, so the press has to
-// establish one. It used to move as well, which selected two rows at once and
-// read as a bug.
+// Superhuman's Shift+arrows select or deselect the row you are on and move on,
+// so a held Shift walks the list picking rows up, and walking back puts them
+// down again. The only decision left is which row that is when Gmail has no
+// cursor and the mouse is nowhere near the list -- a freshly loaded inbox, most
+// often -- and there the arrow points away from the end to start at, the way
+// Gmail's own j and k do from nowhere.
 //
-// With a row already under the cursor, the press does move, so Shift+down from
-// row 5 selects 5 and 6. The difference is whether the anchor already exists.
-//
-// The cursor stops at the ends of the list rather than wrapping: wrapping would
-// swing a selection from the top of the list to the bottom on one keypress.
-function extendRange(count, anchor, cursor, dir) {
-  if (!count) return null;
-  const fresh = anchor === -1;
-  const start = fresh ? (dir > 0 ? 0 : count - 1) : anchor;
-  const at = cursor === -1 ? start : cursor;
-  const next = fresh ? start : Math.min(Math.max(at + dir, 0), count - 1);
-  return {
-    anchor: start,
-    cursor: next,
-    from: Math.min(start, next),
-    to: Math.max(start, next),
-  };
+// There is deliberately no anchor and no remembered range. Three versions of
+// this held one, and each broke once a plain move, a re-render or a hand-ticked
+// box came between two presses: the state and the page disagreed, and the page
+// was always right.
+function rowToToggle(count, index, dir) {
+  if (!count) return -1;
+  if (index !== -1) return index;
+  return dir > 0 ? 0 : count - 1;
 }
 
 // Which conversation an action should act on, and whether we have to tick its
@@ -336,7 +327,7 @@ const core = {
   resolveKey,
   synthKey,
   selectAllSpecs,
-  extendRange,
+  rowToToggle,
   UNREAD_ROW_CLASS,
   isUnreadRow,
   readToggleSpec,

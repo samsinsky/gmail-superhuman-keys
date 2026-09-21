@@ -36,7 +36,7 @@ On by default:
 | `Shift+C` | Pop out compose | `popCompose` |
 | `Shift+O` | Expand / collapse conversation | `expandAll` |
 | `Cmd+A` | Select all conversations in the list, or none if all are selected | `selectAll` |
-| `Shift+↓` / `Shift+↑` | Grow or shrink the selection down / up | `extendDown`, `extendUp` |
+| `Shift+↓` / `Shift+↑` | Select or deselect this row, then move on | `extendDown`, `extendUp` |
 | `Cmd+U` | Unsubscribe (opens Gmail's confirmation) | `unsubscribe` |
 | `Ctrl+/` | Copy link to conversation | `copyLink` |
 

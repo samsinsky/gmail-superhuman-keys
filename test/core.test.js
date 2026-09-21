@@ -552,47 +552,19 @@ test('Cmd+U unsubscribes and leaves plain u to Gmail', () => {
   assert.strictEqual(core.matchBinding(key('u'), [unsubscribe]), null);
 });
 
-// The range Shift+arrow walks. `r(anchor, cursor)` reads as "anchored at A,
-// cursor at C", and from/to is the selection that implies.
-const r = (anchor, cursor) => ({ anchor, cursor, from: Math.min(anchor, cursor), to: Math.max(anchor, cursor) });
-
-test('extendRange grows away from the anchor', () => {
-  assert.deepStrictEqual(core.extendRange(50, 5, 5, 1), r(5, 6));
-  assert.deepStrictEqual(core.extendRange(50, 5, 6, 1), r(5, 7));
+// Shift+arrow toggles the row you are on. Which row that is, is the whole of
+// the pure part; the toggling itself is Gmail's checkbox and lives in the DOM.
+test('rowToToggle takes the row under the cursor', () => {
+  assert.strictEqual(core.rowToToggle(50, 7, 1), 7);
+  assert.strictEqual(core.rowToToggle(50, 7, -1), 7);
 });
 
-test('extendRange shrinks when the arrow reverses, giving back the row it leaves', () => {
-  assert.deepStrictEqual(core.extendRange(50, 5, 8, -1), r(5, 7));
+test('rowToToggle starts at the end the arrow points away from when there is no cursor', () => {
+  assert.strictEqual(core.rowToToggle(50, -1, 1), 0);
+  assert.strictEqual(core.rowToToggle(50, -1, -1), 49);
 });
 
-test('extendRange passes through the anchor and grows the other way', () => {
-  assert.deepStrictEqual(core.extendRange(50, 5, 6, -1), r(5, 5));
-  assert.deepStrictEqual(core.extendRange(50, 5, 5, -1), r(5, 4));
+test('rowToToggle refuses an empty list rather than inventing a row', () => {
+  assert.strictEqual(core.rowToToggle(0, -1, 1), -1);
 });
 
-test('extendRange selects one row, not two, on the first press from nowhere', () => {
-  assert.deepStrictEqual(core.extendRange(50, -1, -1, 1), r(0, 0));
-  assert.deepStrictEqual(core.extendRange(50, -1, -1, -1), r(49, 49));
-});
-
-test('extendRange moves on the second press, once that first row is the anchor', () => {
-  assert.deepStrictEqual(core.extendRange(50, 0, 0, 1), r(0, 1));
-  assert.deepStrictEqual(core.extendRange(50, 49, 49, -1), r(49, 48));
-});
-
-test('extendRange still moves on a first press that has a row under the cursor', () => {
-  assert.deepStrictEqual(core.extendRange(50, 5, -1, 1), r(5, 6));
-});
-
-test('extendRange stops at the ends of the list rather than wrapping', () => {
-  assert.deepStrictEqual(core.extendRange(50, 40, 49, 1), r(40, 49));
-  assert.deepStrictEqual(core.extendRange(50, 10, 0, -1), r(10, 0));
-});
-
-test('extendRange treats a cursor of -1 as sitting on the anchor', () => {
-  assert.deepStrictEqual(core.extendRange(50, 7, -1, 1), r(7, 8));
-});
-
-test('extendRange refuses an empty list rather than inventing a row', () => {
-  assert.strictEqual(core.extendRange(0, -1, -1, 1), null);
-});
