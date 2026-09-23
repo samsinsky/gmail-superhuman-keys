@@ -125,6 +125,30 @@
   // backgrounded tab, where widths all read zero.
   const onScreen = (el) => !!el && el.offsetParent !== null;
 
+  // Anything that could be a control. Gmail labels some of these with a role
+  // and leaves others as bare spans -- the Unsubscribe in a thread carries
+  // role=link, the one on a list row carries nothing at all -- so the net is
+  // cast wide and the label narrows it.
+  const CONTROL_SELECTOR = '[role="link"], [role="button"], a, button, span';
+
+  const controlsIn = (el) => [...el.querySelectorAll(CONTROL_SELECTOR)];
+
+  // The element's own words, not its descendants'. Every ancestor of a control
+  // contains the control's text, so textContent matches a whole message header
+  // as readily as the link inside it.
+  const ownText = (el) => [...el.childNodes]
+    .filter((node) => node.nodeType === 3)
+    .map((node) => node.textContent)
+    .join('');
+
+  function activateControl(el, label) {
+    if (!el) { log('no control saying', label); return false; }
+    log('activate control ->', label);
+    return core.activate(el, (type) => new MouseEvent(type, {
+      bubbles: true, cancelable: true, view: window, button: 0,
+    }));
+  }
+
   // Fire one of Gmail's own shortcuts. Gmail reads e.key and does not check
   // isTrusted, so a plain KeyboardEvent at document.body is enough -- measured
   // 2026-09-09 for both a plain letter and shifted punctuation, with and
@@ -217,27 +241,45 @@
       return sendKey(core.expandToggleSpec(hasCollapsed));
     },
     click: (arg) => clickControl(arg),
-    // Click a control by the words on it, within some part of the page: for
-    // Unsubscribe, which Gmail renders as a bare span carrying a role and an
-    // obfuscated class. Keying on the class is what the first version did, and
-    // those names differ between accounts and change with every rollout, so a
-    // control that is plainly on screen goes unfound. The visible text is the
-    // stable part.
+    // Unsubscribe, from an open conversation or straight from the list. Gmail
+    // offers it in both places and names it the same way in both, so the label
+    // is what this looks for rather than a class: Gmail's class names differ
+    // between accounts and move with every rollout, and the first version of
+    // this keyed on one (span.Ca) and found nothing. English-only, as the whole
+    // extension is.
     //
-    // English-only, as the whole extension is. The last match on screen wins: a
-    // thread repeats the control once per expanded message and the newest is
-    // the one you mean.
-    clickText: (arg) => {
-      const scope = [...document.querySelectorAll(arg.within)].filter(onScreen);
-      const hits = scope
-        .flatMap((el) => [...el.querySelectorAll('[role="link"], [role="button"], a, button')])
-        .filter((el) => onScreen(el) && core.saysExactly(el.textContent, arg.text));
-      const el = hits.pop();
-      if (!el) { log('no control saying', arg.text, 'in', arg.within); return false; }
-      log('activate control ->', arg.text);
-      return core.activate(el, (type) => new MouseEvent(type, {
-        bubbles: true, cancelable: true, view: window, button: 0,
-      }));
+    // Whichever it clicks, Gmail's own confirmation still stands in the way, so
+    // the keypress alone unsubscribes from nothing.
+    unsubscribe: (arg) => {
+      const label = (arg && arg.text) || 'Unsubscribe';
+
+      if (threadOpen()) {
+        // The last message that offers it: a thread repeats the control once
+        // per expanded message, and the newest is the one you mean.
+        const hit = [...document.querySelectorAll('.adn')]
+          .filter(onScreen)
+          .flatMap(controlsIn)
+          .filter((el) => onScreen(el) && core.saysExactly(ownText(el), label))
+          .pop();
+        return activateControl(hit, label);
+      }
+
+      // The focused row first, and the hovered one only when Gmail has no
+      // cursor at all. Deliberately the other way round from pickTarget, which
+      // every other list binding uses: those follow the mouse the way
+      // Superhuman does, and this one follows the focus, on Sam's call.
+      const row = [...document.querySelectorAll('tr.zA')].filter(onScreen).find((r) => r.classList.contains('btb'))
+        || (onScreen(hoveredRow) ? hoveredRow : null);
+      if (!row) { log('no conversation to unsubscribe from'); return false; }
+
+      // In the list the control is painted only while the row is hovered, so
+      // it is in the DOM but measures as off screen -- onScreen would reject
+      // the very control we are after. Being inside the row we picked is the
+      // guard here instead. The mouseover is what makes Gmail paint it, in case
+      // the row was reached by keyboard.
+      row.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true, view: window }));
+      const hit = controlsIn(row).find((el) => core.saysExactly(ownText(el), label));
+      return activateControl(hit, label);
     },
     // Select all, or select none when everything is already selected. The
     // select-all checkbox is the one role=checkbox outside the rows.

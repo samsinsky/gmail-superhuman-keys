@@ -37,7 +37,7 @@ On by default:
 | `Shift+O` | Expand / collapse conversation | `expandAll` |
 | `Cmd+A` | Select all conversations in the list, or none if all are selected | `selectAll` |
 | `Shift+↓` / `Shift+↑` | Select or deselect this row, then move on | `extendDown`, `extendUp` |
-| `Cmd+U` | Unsubscribe (opens Gmail's confirmation) | `unsubscribe` |
+| `Cmd+U` | Unsubscribe, from a conversation or a list row (opens Gmail's confirmation) | `unsubscribe` |
 | `Ctrl+/` | Copy link to conversation | `copyLink` |
 
 Off until you ask for them, because each takes a Gmail shortcut away:
