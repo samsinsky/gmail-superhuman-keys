@@ -261,13 +261,18 @@ function rowToToggle(count, index, dir) {
 //
 // An existing selection always wins, so a deliberate multi-select is never
 // silently redirected at whatever the mouse happens to be over. Failing that we
-// take the hovered row, then the cursor row, and otherwise refuse: acting on an
+// take the cursor row, then the hovered row, and otherwise refuse: acting on an
 // arbitrary conversation is worse than doing nothing.
+//
+// The cursor beats the mouse because it only moves when you ask it to. Walk to
+// a conversation with the arrows while the pointer rests over another row, and
+// the one you walked to is the one you mean. Gmail sets no cursor until you
+// press j/k or click, so a mouse-only user still gets the hovered row.
 function pickTarget(sources) {
   const { checked, hovered, cursor } = sources || {};
   if (checked) return { row: checked, needsCheck: false };
-  if (hovered) return { row: hovered, needsCheck: true };
   if (cursor) return { row: cursor, needsCheck: true };
+  if (hovered) return { row: hovered, needsCheck: true };
   return { row: null, needsCheck: false };
 }
 

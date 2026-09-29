@@ -461,15 +461,17 @@ test('pickTarget prefers an existing selection and leaves it alone', () => {
   assert.strictEqual(t.needsCheck, false);
 });
 
-test('pickTarget falls to the hovered row when nothing is checked', () => {
+test('pickTarget prefers the cursor row over the hovered row when nothing is checked', () => {
+  // The arrow keys move the cursor; the mouse resting over another row must
+  // not steal the action from the conversation you walked to.
   const t = core.pickTarget({ checked: null, hovered: rowStub('hovered'), cursor: rowStub('cursor') });
-  assert.strictEqual(t.row.name, 'hovered');
+  assert.strictEqual(t.row.name, 'cursor');
   assert.strictEqual(t.needsCheck, true);
 });
 
-test('pickTarget falls to the cursor row when nothing is hovered', () => {
-  const t = core.pickTarget({ checked: null, hovered: null, cursor: rowStub('cursor') });
-  assert.strictEqual(t.row.name, 'cursor');
+test('pickTarget falls to the hovered row when there is no cursor', () => {
+  const t = core.pickTarget({ checked: null, hovered: rowStub('hovered'), cursor: null });
+  assert.strictEqual(t.row.name, 'hovered');
   assert.strictEqual(t.needsCheck, true);
 });
 

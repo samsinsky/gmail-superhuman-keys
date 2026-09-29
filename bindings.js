@@ -15,8 +15,8 @@
 //
 // needsTarget: true means the binding acts on a conversation. Gmail acts on
 // checked conversations and ignores the mouse and the keyboard cursor, so
-// content.js ticks a box first -- the hovered row, or the cursor row, whichever
-// it finds -- and leaves an existing selection alone. Without this the key
+// content.js ticks a box first -- the cursor row, or the hovered row when there
+// is no cursor -- and leaves an existing selection alone. Without this the key
 // quietly does nothing, which is what makes these feel broken next to
 // Superhuman.
 
@@ -150,7 +150,7 @@ globalThis.GSK_BINDINGS = [
 
   // Superhuman's Cmd+U unsubscribes. Gmail offers it beside the sender of an
   // open message and again on the list row itself, so this works from either,
-  // acting on the row under the mouse or the cursor when used from the list.
+  // acting on the cursor row, or the one under the mouse, when used from the list.
   // Clicking it opens Gmail's own confirmation, so nothing is unsubscribed
   // without a second, deliberate click. Absent on ordinary mail, where the key
   // falls through. Found by its label rather than its class -- see content.js.

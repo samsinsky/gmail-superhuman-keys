@@ -86,8 +86,9 @@
   // Gmail's own actions -- keyboard and toolbar alike -- act on checked
   // conversations and ignore both the mouse and the keyboard cursor. Superhuman
   // acts on whatever is focused, so to get that feel we tick a box first. The
-  // mouse position is tracked here because Gmail does not expose it: the hovered
-  // row is what a Superhuman user means by "this conversation".
+  // mouse position is tracked here because Gmail does not expose it: with no
+  // keyboard cursor, the hovered row is what a Superhuman user means by "this
+  // conversation".
   let hoveredRow = null;
   document.addEventListener('mouseover', (e) => {
     const row = e.target && e.target.closest && e.target.closest('tr.zA');
@@ -100,7 +101,10 @@
     const target = core.pickTarget({
       checked: document.querySelector('tr.zA.x7'),
       hovered: hoveredRow && hoveredRow.isConnected ? hoveredRow : null,
-      cursor: document.querySelector('tr.zA.btb'),
+      // Only the list on screen: Gmail keeps the lists of views you have left
+      // in the DOM, and now that the cursor outranks the mouse a stale one
+      // would steal the action.
+      cursor: [...document.querySelectorAll('tr.zA.btb')].find(onScreen) || null,
     });
     if (!target.row) { log('no conversation to act on'); return false; }
     if (!target.needsCheck) return true;
@@ -265,9 +269,8 @@
       }
 
       // The focused row first, and the hovered one only when Gmail has no
-      // cursor at all. Deliberately the other way round from pickTarget, which
-      // every other list binding uses: those follow the mouse the way
-      // Superhuman does, and this one follows the focus, on Sam's call.
+      // cursor at all -- the same order pickTarget uses for every other list
+      // binding.
       const row = [...document.querySelectorAll('tr.zA')].filter(onScreen).find((r) => r.classList.contains('btb'))
         || (onScreen(hoveredRow) ? hoveredRow : null);
       if (!row) { log('no conversation to unsubscribe from'); return false; }
