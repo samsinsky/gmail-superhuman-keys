@@ -95,6 +95,13 @@ test('shouldIgnore is true inside a dialog, so compose windows are safe', () => 
   );
 });
 
+// Gmail's confirmations (unsubscribe, discard) are role="alertdialog", which a
+// [role="dialog"] selector does not match. Tab has to walk their buttons.
+test('shouldIgnore is true inside an alertdialog, so Tab reaches a confirmation\'s buttons', () => {
+  const insideAlert = (s) => (s.split(',').some((part) => part.trim() === '[role="alertdialog"]') ? {} : null);
+  assert.strictEqual(core.shouldIgnore(el('A', { closest: insideAlert })), true);
+});
+
 test('shouldIgnore is true for an element explicitly marked as a textbox', () => {
   assert.strictEqual(
     core.shouldIgnore(el('DIV', { getAttribute: (a) => (a === 'role' ? 'textbox' : null) })),

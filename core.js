@@ -58,9 +58,10 @@ function shouldIgnore(target) {
   if (target.isContentEditable) return true;
   const role = target.getAttribute && target.getAttribute('role');
   if (role === 'textbox' || role === 'combobox' || role === 'searchbox') return true;
-  // Compose and Gmail's settings both render as dialogs; leave their internal
-  // focus order alone.
-  if (target.closest && target.closest('[role="dialog"]')) return true;
+  // Compose and Gmail's settings both render as dialogs, and its confirmations
+  // (unsubscribe among them) as alertdialogs; leave their internal focus order
+  // alone.
+  if (target.closest && target.closest('[role="dialog"], [role="alertdialog"]')) return true;
   return false;
 }
 
